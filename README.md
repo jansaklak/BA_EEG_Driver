@@ -1,4 +1,8 @@
-# 🧠 BrainAccess EEG — Driver for macOS, Windows and Linux
+# 🧠 BrainAccess EEG — Unofficial Driver for macOS, Windows and Linux
+
+> ⚠️ **Unofficial project.** This is an independent, community-made driver. It is **not affiliated with, authorized, sponsored or endorsed by Neurotechnology** or the BrainAccess team. *BrainAccess*, *HALO*, *BA MINI* and *Neurotechnology* are names or trademarks of their respective owners and are used here only to describe compatibility with the hardware.
+>
+> The software is provided “as is”, without warranty of any kind, and you use it at your own risk. The manufacturer does not provide support for it. It is intended for research and educational purposes only and is **not a medical device** – do not use it for diagnosis, treatment or any clinical decisions.
 
 A native, high-performance Python driver for **BrainAccess** EEG headsets from Neurotechnology, including the **BA MINI** and **HALO** models, running on **macOS** (Apple Silicon and Intel), **Windows 10/11** and **Linux** – including where the official `brainaccess` package has no ready-made native libraries (e.g. Apple Silicon Macs).
 
