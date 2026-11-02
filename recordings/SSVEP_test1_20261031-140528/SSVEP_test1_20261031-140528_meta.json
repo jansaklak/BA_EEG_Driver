@@ -1,0 +1,100 @@
+{
+  "session": "SSVEP_test1_20261031-140528",
+  "task_code": "SSVEP",
+  "task_key": "ssvep",
+  "task_name": "SSVEP — cztery kwadraty",
+  "pseudonym": "test1",
+  "created": "2026-10-31T14:05:28",
+  "params": {
+    "trials": 10,
+    "stimulus-sec": 4.0,
+    "response-window-sec": 5.0
+  },
+  "eeg_recorded": true,
+  "sample_rate_hz": 250,
+  "channels": [
+    "Cz",
+    "Fp1",
+    "Fp2",
+    "P7",
+    "P8",
+    "C3",
+    "C4",
+    "Oz"
+  ],
+  "unit": "uV",
+  "reference": "P8",
+  "bias": "P7",
+  "device": {
+    "connected": true,
+    "streaming": true,
+    "device_name": "BA MINI 002",
+    "address": "8D794602-AAAB-0452-5555-21E3F6BA74D2",
+    "battery_level": 60,
+    "model": "MINI",
+    "firmware": "3.6.0",
+    "hardware": "2.0.0",
+    "serial": "SN23002",
+    "sample_rate": 250,
+    "channels": [
+      "Cz",
+      "Fp1",
+      "Fp2",
+      "P7",
+      "P8",
+      "C3",
+      "C4",
+      "Oz"
+    ],
+    "channel_count": 8,
+    "electrode_count": 8,
+    "total_samples": 3282,
+    "dropped_packets": 0
+  },
+  "dropped_packets_at_start": 0,
+  "clock": "local_clock (pylsl.local_clock lub time.monotonic; wspólny dla EEG i triggerów)",
+  "timestamping": "czas odbioru pakietu BLE, próbki w paczce cofane co 1/fs",
+  "files": {
+    "eeg": "SSVEP_test1_20261031-140528.csv",
+    "events": "SSVEP_test1_20261031-140528_events.csv",
+    "behavior": "SSVEP_test1_20261031-140528_behavior.csv",
+    "meta": "SSVEP_test1_20261031-140528_meta.json",
+    "log": "SSVEP_test1_20261031-140528_task.log"
+  },
+  "status": "error",
+  "command": [
+    "/Users/jans/Programy/EEG-project/.venv/bin/python",
+    "-u",
+    "-m",
+    "tasks.ssvep.task",
+    "--session-dir",
+    "/Users/jans/Programy/EEG-project/recordings/SSVEP_test1_20261031-140528",
+    "--id",
+    "test1",
+    "--trials",
+    "10",
+    "--stimulus-sec",
+    "4.0",
+    "--response-window-sec",
+    "5.0"
+  ],
+  "exit_code": -11,
+  "ended": "2026-10-31T14:05:40",
+  "eeg_samples": 2808,
+  "eeg_first_lsl_time": 249316.607957041,
+  "eeg_last_lsl_time": 249327.95430337294,
+  "eeg_duration_sec": 11.346,
+  "dropped_packets_at_end": 0,
+  "sync": {
+    "events_total": 3,
+    "events_in_eeg": 3,
+    "events_outside_eeg": [],
+    "markers": {
+      "SSVEP_SESSION_START": 1,
+      "SSVEP_TRIAL_START": 1,
+      "SSVEP_TARGET_RIGHT": 1
+    }
+  },
+  "warnings": [],
+  "error": "Proces zadania zakończył się kodem -11. Zobacz SSVEP_test1_20261031-140528_task.log."
+}

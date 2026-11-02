@@ -1,0 +1,99 @@
+{
+  "session": "FLANKER_test10_20261102-144838",
+  "task_code": "FLANKER",
+  "task_key": "flanker",
+  "task_name": "Flanker (Eriksen)",
+  "pseudonym": "test10",
+  "created": "2026-11-02T14:48:38",
+  "params": {
+    "trials": 40,
+    "stimulus-ms": 200.0,
+    "response-window-ms": 1200.0
+  },
+  "eeg_recorded": true,
+  "sample_rate_hz": 250,
+  "channels": [
+    "Cz",
+    "Fp1",
+    "Fp2",
+    "P7",
+    "P8",
+    "C3",
+    "C4",
+    "Oz"
+  ],
+  "unit": "uV",
+  "reference": "P8",
+  "bias": "P7",
+  "device": {
+    "connected": true,
+    "streaming": true,
+    "device_name": "BA MINI 002",
+    "address": "8D794602-AAAB-0452-5555-21E3F6BA74D2",
+    "battery_level": 60,
+    "model": "MINI",
+    "firmware": "3.6.0",
+    "hardware": "2.0.0",
+    "serial": "SN23002",
+    "sample_rate": 250,
+    "channels": [
+      "Cz",
+      "Fp1",
+      "Fp2",
+      "P7",
+      "P8",
+      "C3",
+      "C4",
+      "Oz"
+    ],
+    "channel_count": 8,
+    "electrode_count": 8,
+    "total_samples": 12942,
+    "dropped_packets": 0
+  },
+  "dropped_packets_at_start": 0,
+  "clock": "local_clock (pylsl.local_clock lub time.monotonic; wspólny dla EEG i triggerów)",
+  "timestamping": "czas odbioru pakietu BLE, próbki w paczce cofane co 1/fs",
+  "files": {
+    "eeg": "FLANKER_test10_20261102-144838.csv",
+    "events": "FLANKER_test10_20261102-144838_events.csv",
+    "behavior": "FLANKER_test10_20261102-144838_behavior.csv",
+    "meta": "FLANKER_test10_20261102-144838_meta.json",
+    "log": "FLANKER_test10_20261102-144838_task.log"
+  },
+  "status": "error",
+  "command": [
+    "/Users/jans/Programy/EEG-project/.venv/bin/python",
+    "-u",
+    "-m",
+    "tasks.flanker.task",
+    "--session-dir",
+    "/Users/jans/Programy/EEG-project/recordings/FLANKER_test10_20261102-144838",
+    "--id",
+    "test10",
+    "--trials",
+    "40",
+    "--stimulus-ms",
+    "200.0",
+    "--response-window-ms",
+    "1200.0"
+  ],
+  "exit_code": -11,
+  "ended": "2026-11-02T14:48:47",
+  "eeg_samples": 2346,
+  "eeg_first_lsl_time": 424706.451416458,
+  "eeg_last_lsl_time": 424715.9376193765,
+  "eeg_duration_sec": 9.486,
+  "dropped_packets_at_end": 0,
+  "sync": {
+    "events_total": 2,
+    "events_in_eeg": 2,
+    "events_outside_eeg": [],
+    "markers": {
+      "SESSION_START": 1,
+      "TRIAL_CONGRUENT": 1
+    }
+  },
+  "warnings": [],
+  "error": "Proces zadania zakończył się kodem -11. Zobacz FLANKER_test10_20261102-144838_task.log."
+}

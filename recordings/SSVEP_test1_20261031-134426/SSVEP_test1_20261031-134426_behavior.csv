@@ -1,0 +1,11 @@
+trial,target,response,result,rt_sec,stimulus_lsl_time
+1,down,,timeout,,248058.288049
+2,up,,timeout,,248065.329702
+3,up,,timeout,,248072.423581
+4,right,,timeout,,248079.289645
+5,left,,timeout,,248085.997803
+6,up,,timeout,,248093.044934
+7,left,,timeout,,248099.902907
+8,right,,timeout,,248107.097213
+9,left,,timeout,,248114.138400
+10,right,,timeout,,248121.420040

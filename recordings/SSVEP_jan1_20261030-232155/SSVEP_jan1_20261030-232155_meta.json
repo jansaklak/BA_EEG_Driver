@@ -1,0 +1,14 @@
+{
+  "session": "SSVEP_jan1_20261030-232155",
+  "task_code": "SSVEP",
+  "task_key": "ssvep",
+  "pseudonym": "jan1",
+  "created": "2026-10-30T23:21:55",
+  "params": {
+    "trials": 10,
+    "stimulus_sec": 0.5,
+    "response_window_sec": 2.0
+  },
+  "eeg_recorded": false,
+  "note": "Zadanie uruchomione poza panelem WWW – brak zapisu EEG."
+}

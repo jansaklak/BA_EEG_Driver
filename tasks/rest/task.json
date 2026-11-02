@@ -1,0 +1,9 @@
+{
+  "code": "REST",
+  "name": "REST — oczy otwarte / zamknięte",
+  "description": "Naprzemienne bloki z sygnałem dźwiękowym. Analiza: widmo i moc pasm open vs closed.",
+  "params": [
+    {"name": "blocks", "label": "Liczba bloków (parzysta)", "type": "int", "default": 6, "min": 2, "max": 40},
+    {"name": "block-seconds", "label": "Długość bloku (s)", "type": "float", "default": 30, "min": 5, "max": 600}
+  ]
+}

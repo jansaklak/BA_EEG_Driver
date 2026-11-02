@@ -1,0 +1,3754 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrainLink — Dashboard</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    :root {
+      --bg: #0a0b0d;
+      --bg2: #111318;
+      --bg3: #181b22;
+      --bg4: #1f232d;
+      --tx: #e8e6e1;
+      --tx2: #9a9890;
+      --tx3: #5c5a55;
+      --acc: #00e5a0;
+      --acc2: #00b87d;
+      --acc-dim: rgba(0, 229, 160, 0.12);
+      --red: #ff4d5a;
+      --amber: #ffb020;
+      --blue: #3d9eff;
+      --purple: #a070ff;
+      --pink: #ff5ca0;
+      --teal: #00d4aa;
+      --radius: 6px;
+      --radius-lg: 10px;
+      --font: 'JetBrains Mono', monospace;
+      --font-head: 'Space Grotesk', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--tx);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.5;
+      overflow-x: hidden
+    }
+
+    /* Layout */
+    .shell {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+      gap: 0
+    }
+
+    .topbar {
+      grid-column: 1/-1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--bg2);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04)
+    }
+
+    .topbar h1 {
+      font-family: var(--font-head);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.5px
+    }
+
+    .topbar h1 span {
+      color: var(--acc)
+    }
+
+    .topbar .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--tx2)
+    }
+
+    .topbar .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--acc);
+      animation: pulse 2s ease infinite
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    .main {
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px
+    }
+
+    .sidebar {
+      overflow-y: auto;
+      padding: 16px;
+      background: var(--bg2);
+      border-left: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 14px
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg3);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px
+    }
+
+    .card-head {
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--tx2);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    /* Metric bars */
+    .metric-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px
+    }
+
+    .metric-row:last-child {
+      margin-bottom: 0
+    }
+
+    .metric-label {
+      width: 80px;
+      font-size: 11px;
+      color: var(--tx2);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0
+    }
+
+    .metric-bar-bg {
+      flex: 1;
+      height: 20px;
+      background: var(--bg);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative
+    }
+
+    .metric-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.15s ease;
+      position: relative
+    }
+
+    .metric-bar-fill::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 1px
+    }
+
+    .metric-val {
+      width: 44px;
+      font-size: 12px;
+      font-weight: 500;
+      text-align: right;
+      font-variant-numeric: tabular-nums
+    }
+
+    .metric-bar-fill.focus {
+      background: linear-gradient(90deg, rgba(0, 229, 160, 0.3), var(--acc))
+    }
+
+    .metric-bar-fill.calm {
+      background: linear-gradient(90deg, rgba(61, 158, 255, 0.3), var(--blue))
+    }
+
+    .metric-bar-fill.valence {
+      background: linear-gradient(90deg, rgba(160, 112, 255, 0.3), var(--purple))
+    }
+
+    .metric-bar-fill.instability {
+      background: linear-gradient(90deg, rgba(255, 176, 32, 0.3), var(--amber))
+    }
+
+    .metric-bar-fill.stress {
+      background: linear-gradient(90deg, rgba(255, 77, 90, 0.3), var(--red))
+    }
+
+    .metric-bar-fill.flow {
+      background: linear-gradient(90deg, rgba(255, 92, 160, 0.3), var(--pink))
+    }
+
+    /* Combo pills */
+    .combo-zone {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 28px
+    }
+
+    .combo-pill {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border: 1px solid
+    }
+
+    .combo-pill.active {
+      animation: combo-glow 1.5s ease infinite
+    }
+
+    .combo-pill.cooldown {
+      opacity: 0.35
+    }
+
+    .combo-pill.super_flow {
+      color: var(--acc);
+      border-color: var(--acc);
+      background: var(--acc-dim)
+    }
+
+    .combo-pill.panic {
+      color: var(--red);
+      border-color: var(--red);
+      background: rgba(255, 77, 90, 0.1)
+    }
+
+    .combo-pill.zen_heal {
+      color: var(--blue);
+      border-color: var(--blue);
+      background: rgba(61, 158, 255, 0.1)
+    }
+
+    .combo-pill.berserker {
+      color: var(--amber);
+      border-color: var(--amber);
+      background: rgba(255, 176, 32, 0.1)
+    }
+
+    @keyframes combo-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.05)
+      }
+
+      50% {
+        box-shadow: 0 0 16px rgba(255, 255, 255, 0.12)
+      }
+    }
+
+    /* EEG wave canvas */
+    .wave-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px
+    }
+
+    .wave-card {
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 8px;
+      position: relative
+    }
+
+    .wave-card .ch-name {
+      position: absolute;
+      top: 6px;
+      left: 10px;
+      font-size: 10px;
+      color: var(--tx3);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px
+    }
+
+    .wave-card .ch-val {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      font-size: 11px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      color: var(--tx);
+      letter-spacing: 0.3px
+    }
+
+    .wave-card .ch-stats {
+      position: absolute;
+      bottom: 4px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: var(--tx3);
+      font-variant-numeric: tabular-nums
+    }
+
+    .wave-card canvas {
+      width: 100%;
+      height: 80px;
+      display: block
+    }
+
+    /* Band powers */
+    .band-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px
+    }
+
+    .band-cell {
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 8px;
+      text-align: center
+    }
+
+    .band-cell .ch {
+      font-size: 10px;
+      color: var(--tx3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px
+    }
+
+    .band-bars {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 2px;
+      height: 40px
+    }
+
+    .band-bar {
+      width: 8px;
+      border-radius: 2px 2px 0 0;
+      transition: height 0.15s ease;
+      min-height: 2px
+    }
+
+    .band-bar.delta {
+      background: #6366f1
+    }
+
+    .band-bar.theta {
+      background: #f59e0b
+    }
+
+    .band-bar.alpha {
+      background: var(--acc)
+    }
+
+    .band-bar.beta {
+      background: var(--blue)
+    }
+
+    .band-bar.gamma {
+      background: var(--pink)
+    }
+
+    /* Calibration */
+    .cal-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-radius: var(--radius);
+      margin-bottom: 4px;
+      background: var(--bg);
+      transition: all .2s
+    }
+
+    .cal-step.active {
+      background: var(--bg4);
+      border: 1px solid rgba(0, 229, 160, 0.2)
+    }
+
+    .cal-step.done {
+      opacity: 0.5
+    }
+
+    .cal-step .idx {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      background: var(--bg3);
+      color: var(--tx3);
+      flex-shrink: 0
+    }
+
+    .cal-step.done .idx {
+      background: var(--acc);
+      color: var(--bg)
+    }
+
+    .cal-step.active .idx {
+      background: var(--acc-dim);
+      color: var(--acc)
+    }
+
+    .cal-step .info {
+      font-size: 12px;
+      color: var(--tx2)
+    }
+
+    .cal-step.active .info {
+      color: var(--tx)
+    }
+
+    /* Settings */
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03)
+    }
+
+    .setting-row:last-child {
+      border-bottom: none
+    }
+
+    .setting-row label {
+      font-size: 11px;
+      color: var(--tx2)
+    }
+
+    .setting-row input[type=range] {
+      width: 100px;
+      accent-color: var(--acc)
+    }
+
+    .setting-row .val {
+      font-size: 11px;
+      color: var(--acc);
+      width: 36px;
+      text-align: right;
+      font-variant-numeric: tabular-nums
+    }
+
+    /* State buttons */
+    .state-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px
+    }
+
+    .state-btn {
+      padding: 5px 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg);
+      color: var(--tx2);
+      font-family: var(--font);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s
+    }
+
+    .state-btn:hover {
+      border-color: var(--acc);
+      color: var(--acc)
+    }
+
+    .state-btn.active {
+      background: var(--acc-dim);
+      color: var(--acc);
+      border-color: var(--acc)
+    }
+
+    /* Band legend */
+    .band-legend {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 8px
+    }
+
+    .band-legend span {
+      font-size: 10px;
+      color: var(--tx3);
+      display: flex;
+      align-items: center;
+      gap: 4px
+    }
+
+    .band-legend span::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      display: inline-block
+    }
+
+    .band-legend .l-delta::before {
+      background: #6366f1
+    }
+
+    .band-legend .l-theta::before {
+      background: #f59e0b
+    }
+
+    .band-legend .l-alpha::before {
+      background: var(--acc)
+    }
+
+    .band-legend .l-beta::before {
+      background: var(--blue)
+    }
+
+    .band-legend .l-gamma::before {
+      background: var(--pink)
+    }
+
+    /* Device toggle */
+    .dev-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      background: var(--bg);
+      border-radius: var(--radius);
+      margin-bottom: 10px
+    }
+
+    .dev-toggle .dev-label {
+      font-size: 12px;
+      color: var(--tx2)
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      cursor: pointer;
+      flex-shrink: 0
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--bg4);
+      border-radius: 12px;
+      transition: .2s;
+      border: 1px solid rgba(255, 255, 255, 0.06)
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 2px;
+      bottom: 2px;
+      background: var(--tx3);
+      border-radius: 50%;
+      transition: .2s
+    }
+
+    .toggle-switch input:checked+.toggle-slider {
+      background: var(--acc-dim);
+      border-color: var(--acc)
+    }
+
+    .toggle-switch input:checked+.toggle-slider::before {
+      transform: translateX(20px);
+      background: var(--acc)
+    }
+
+    .dev-status {
+      padding: 10px;
+      border-radius: var(--radius);
+      background: var(--bg);
+      margin-bottom: 10px;
+      font-size: 11px
+    }
+
+    .dev-status .status-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      color: var(--tx2)
+    }
+
+    .dev-status .status-val {
+      color: var(--tx);
+      font-weight: 500
+    }
+
+    .dev-status .status-val.on {
+      color: var(--acc)
+    }
+
+    .dev-status .status-val.off {
+      color: var(--red)
+    }
+
+    .source-btns {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px
+    }
+
+    .source-btn {
+      flex: 1;
+      padding: 6px 0;
+      text-align: center;
+      font-family: var(--font);
+      font-size: 11px;
+      background: var(--bg);
+      color: var(--tx3);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all .15s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px
+    }
+
+    .source-btn.active {
+      background: var(--acc-dim);
+      color: var(--acc);
+      border-color: var(--acc)
+    }
+
+    .source-btn.off-active {
+      background: rgba(255, 77, 90, 0.1);
+      color: var(--red);
+      border-color: var(--red)
+    }
+
+    .sim-section {
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 10px;
+      margin-top: 6px
+    }
+
+    /* Tabs */
+    .tab-row {
+      display: flex;
+      gap: 0;
+      margin-bottom: 10px
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 7px 0;
+      text-align: center;
+      font-family: var(--font);
+      font-size: 11px;
+      background: var(--bg);
+      color: var(--tx3);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      transition: all .15s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px
+    }
+
+    .tab-btn:first-child {
+      border-radius: var(--radius) 0 0 var(--radius)
+    }
+
+    .tab-btn:last-child {
+      border-radius: 0 var(--radius) var(--radius) 0
+    }
+
+    .tab-btn.active {
+      background: var(--bg4);
+      color: var(--acc);
+      border-color: rgba(0, 229, 160, 0.15)
+    }
+
+    .tab-panel {
+      display: none
+    }
+
+    .tab-panel.active {
+      display: block
+    }
+
+    /* Recording UI */
+    .rec-field {
+      margin-bottom: 10px
+    }
+
+    .rec-field label {
+      display: block;
+      font-size: 11px;
+      color: var(--tx2);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px
+    }
+
+    .rec-field input[type=text],
+    .rec-field textarea {
+      width: 100%;
+      padding: 6px 8px;
+      background: var(--bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      color: var(--tx);
+      font-family: var(--font);
+      font-size: 12px;
+      outline: none
+    }
+
+    .rec-field input[type=text]:focus,
+    .rec-field textarea:focus {
+      border-color: var(--acc)
+    }
+
+    .rec-field textarea {
+      resize: vertical;
+      min-height: 50px
+    }
+
+    .rec-duration {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .rec-duration input[type=range] {
+      flex: 1;
+      accent-color: var(--acc)
+    }
+
+    .rec-duration .val {
+      font-size: 12px;
+      color: var(--acc);
+      width: 40px;
+      text-align: right;
+      font-variant-numeric: tabular-nums
+    }
+
+    .rec-timer {
+      text-align: center;
+      padding: 16px 0;
+      font-family: var(--font-head);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--acc);
+      letter-spacing: 2px
+    }
+
+    .rec-progress {
+      height: 4px;
+      background: var(--bg);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 10px
+    }
+
+    .rec-progress-bar {
+      height: 100%;
+      background: var(--acc);
+      border-radius: 2px;
+      transition: width 0.5s
+    }
+
+    .rec-btn {
+      width: 100%;
+      padding: 8px;
+      border-radius: var(--radius);
+      border: 1px solid;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px
+    }
+
+    .rec-btn.start {
+      background: var(--acc-dim);
+      color: var(--acc);
+      border-color: var(--acc)
+    }
+
+    .rec-btn.start:hover {
+      background: var(--acc);
+      color: var(--bg)
+    }
+
+    .rec-btn.stop {
+      background: rgba(255, 77, 90, 0.1);
+      color: var(--red);
+      border-color: var(--red)
+    }
+
+    .rec-btn.stop:hover {
+      background: var(--red);
+      color: #fff
+    }
+
+    .rec-info {
+      font-size: 11px;
+      color: var(--tx3);
+      text-align: center;
+      margin-top: 6px
+    }
+
+    /* Recording indicator */
+    .rec-indicator {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      margin-left: 16px
+    }
+
+    .rec-indicator.active {
+      display: flex
+    }
+
+    .rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: rec-blink 1s ease infinite
+    }
+
+    @keyframes rec-blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .3
+      }
+    }
+
+    .rec-label {
+      font-size: 11px;
+      color: var(--red);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px
+    }
+
+    /* Recordings list */
+    .rec-list {
+      max-height: 300px;
+      overflow-y: auto
+    }
+
+    .rec-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px;
+      background: var(--bg);
+      border-radius: var(--radius);
+      margin-bottom: 4px;
+      cursor: pointer;
+      transition: all .15s
+    }
+
+    .rec-item:hover {
+      background: var(--bg4)
+    }
+
+    .rec-item .rec-item-info {
+      flex: 1;
+      min-width: 0
+    }
+
+    .rec-item .rec-item-name {
+      font-size: 12px;
+      color: var(--tx);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .rec-item .rec-item-meta {
+      font-size: 10px;
+      color: var(--tx3)
+    }
+
+    .rec-item-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0
+    }
+
+    .rec-item-actions button {
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg3);
+      color: var(--tx2);
+      font-family: var(--font);
+      font-size: 10px;
+      cursor: pointer
+    }
+
+    .rec-item-actions button:hover {
+      border-color: var(--acc);
+      color: var(--acc)
+    }
+
+    .rec-item-actions button.del:hover {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
+    /* Chart overlay */
+    .chart-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      padding: 40px;
+      overflow-y: auto
+    }
+
+    .chart-overlay.active {
+      display: block
+    }
+
+    .chart-overlay .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px
+    }
+
+    .chart-overlay .chart-title {
+      font-family: var(--font-head);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--tx)
+    }
+
+    .chart-overlay .chart-close {
+      padding: 6px 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg3);
+      color: var(--tx2);
+      font-family: var(--font);
+      font-size: 12px;
+      cursor: pointer
+    }
+
+    .chart-overlay .chart-close:hover {
+      color: var(--tx);
+      border-color: var(--acc)
+    }
+
+    .chart-overlay .chart-notes {
+      font-size: 12px;
+      color: var(--tx2);
+      margin-bottom: 16px;
+      padding: 10px;
+      background: var(--bg3);
+      border-radius: var(--radius)
+    }
+
+    .chart-channel {
+      background: var(--bg2);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      margin-bottom: 12px
+    }
+
+    .chart-channel .ch-label {
+      font-size: 11px;
+      color: var(--tx2);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px
+    }
+
+    .chart-channel canvas {
+      width: 100%;
+      height: 120px;
+      display: block
+    }
+
+    /* Mental State Events */
+    .mental-state-card {
+      position: relative;
+      overflow: hidden
+    }
+
+    .mental-state-display {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px;
+      background: var(--bg);
+      border-radius: var(--radius);
+      min-height: 56px;
+      transition: all 0.3s ease
+    }
+
+    .mental-state-display.active {
+      border: 1px solid rgba(255, 255, 255, 0.08)
+    }
+
+    .mental-icon {
+      font-size: 28px;
+      line-height: 1;
+      flex-shrink: 0;
+      width: 36px;
+      text-align: center
+    }
+
+    .mental-info {
+      flex: 1;
+      min-width: 0
+    }
+
+    .mental-label {
+      font-family: var(--font-head);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      transition: color 0.3s
+    }
+
+    .mental-sub {
+      font-size: 11px;
+      color: var(--tx2);
+      margin-top: 2px
+    }
+
+    .mental-confidence {
+      width: 50px;
+      text-align: right;
+      flex-shrink: 0
+    }
+
+    .mental-conf-val {
+      font-size: 18px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums
+    }
+
+    .mental-conf-label {
+      font-size: 9px;
+      color: var(--tx3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px
+    }
+
+    .mental-prob-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-top: 10px
+    }
+
+    .mental-prob {
+      padding: 5px 4px;
+      background: var(--bg);
+      border-radius: 4px;
+      text-align: center;
+      transition: all 0.2s;
+      border: 1px solid transparent
+    }
+
+    .mental-prob.top {
+      border-color: rgba(255, 255, 255, 0.08)
+    }
+
+    .mental-prob .mp-icon {
+      font-size: 14px
+    }
+
+    .mental-prob .mp-name {
+      font-size: 9px;
+      color: var(--tx3);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .mental-prob .mp-bar {
+      height: 3px;
+      background: var(--bg4);
+      border-radius: 2px;
+      margin-top: 3px;
+      overflow: hidden
+    }
+
+    .mental-prob .mp-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.2s
+    }
+
+    .mental-prob .mp-pct {
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+      margin-top: 1px
+    }
+
+    .mental-state-pulse {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: var(--radius-lg);
+      opacity: 0;
+      transition: opacity 0.5s;
+      pointer-events: none
+    }
+
+    @keyframes state-glow {
+
+      0%,
+      100% {
+        opacity: 0.04
+      }
+
+      50% {
+        opacity: 0.1
+      }
+    }
+
+    .mental-state-display.active .mental-state-pulse {
+      animation: state-glow 2s ease infinite
+    }
+
+    /* Event log */
+    .event-log {
+      max-height: 140px;
+      overflow-y: auto;
+      margin-top: 8px
+    }
+
+    .event-entry {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 3px;
+      margin-bottom: 2px;
+      background: var(--bg);
+      transition: opacity 0.3s
+    }
+
+    .event-entry .ev-time {
+      color: var(--tx3);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+      width: 48px
+    }
+
+    .event-entry .ev-icon {
+      flex-shrink: 0;
+      width: 18px;
+      text-align: center
+    }
+
+    .event-entry .ev-text {
+      color: var(--tx2);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .event-entry .ev-dur {
+      color: var(--tx3);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0
+    }
+
+    /* ── Combo Kreator ─────────────────────────────────────────────────── */
+    .kit-section-label {
+      font-size: 10px;
+      color: var(--tx3);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 12px 0 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04)
+    }
+
+    .kit-rec-select {
+      width: 100%;
+      background: var(--bg);
+      color: var(--tx);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      padding: 6px 8px;
+      font-family: var(--font);
+      font-size: 11px;
+      outline: none;
+      cursor: pointer
+    }
+
+    .kit-rec-select:focus {
+      border-color: var(--acc)
+    }
+
+    .kit-seg-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 8px
+    }
+
+    .kit-seg-row label {
+      flex: 1;
+      font-size: 11px;
+      color: var(--tx2);
+      display: flex;
+      align-items: center;
+      gap: 4px
+    }
+
+    .kit-seg-row input[type=number] {
+      width: 58px;
+      background: var(--bg);
+      color: var(--tx);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      padding: 4px 6px;
+      font-family: var(--font);
+      font-size: 11px;
+      text-align: center;
+      outline: none
+    }
+
+    .kit-seg-row input[type=number]:focus {
+      border-color: var(--acc)
+    }
+
+    .kit-timeline {
+      width: 100%;
+      height: 72px;
+      display: block;
+      background: var(--bg);
+      border-radius: var(--radius);
+      margin: 8px 0 4px;
+      cursor: default
+    }
+
+    .kit-cond-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      transition: opacity .2s
+    }
+
+    .kit-cond-name {
+      font-size: 11px;
+      font-weight: 500;
+      width: 68px;
+      flex-shrink: 0;
+      letter-spacing: 0.3px
+    }
+
+    .kit-cond-mean {
+      font-size: 10px;
+      color: var(--tx3);
+      width: 30px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0
+    }
+
+    .kit-op-sel {
+      background: var(--bg4);
+      color: var(--tx);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      padding: 3px 2px;
+      font-family: var(--font);
+      font-size: 11px;
+      width: 28px;
+      flex-shrink: 0;
+      text-align: center
+    }
+
+    .kit-thresh {
+      flex: 1;
+      accent-color: var(--acc);
+      cursor: pointer
+    }
+
+    .kit-val {
+      font-size: 11px;
+      color: var(--acc);
+      width: 30px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0
+    }
+
+    .kit-name-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px
+    }
+
+    .kit-name-row input {
+      flex: 1;
+      background: var(--bg);
+      color: var(--tx);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      padding: 5px 8px;
+      font-family: var(--font);
+      font-size: 12px;
+      outline: none
+    }
+
+    .kit-name-row input:focus {
+      border-color: var(--acc)
+    }
+
+    .kit-timing-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px
+    }
+
+    .kit-timing-row label {
+      flex: 1;
+      font-size: 10px;
+      color: var(--tx3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px
+    }
+
+    .kit-timing-row input {
+      background: var(--bg);
+      color: var(--tx);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      padding: 4px 6px;
+      font-family: var(--font);
+      font-size: 11px;
+      text-align: center;
+      width: 100%;
+      outline: none
+    }
+
+    .kit-combo-item {
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      margin-bottom: 4px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 2px 8px
+    }
+
+    .kit-combo-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--acc)
+    }
+
+    .kit-combo-del {
+      grid-row: 1/3;
+      align-self: center;
+      background: none;
+      border: 1px solid rgba(255, 77, 90, .3);
+      color: var(--red);
+      border-radius: 3px;
+      padding: 3px 8px;
+      font-size: 10px;
+      cursor: pointer;
+      flex-shrink: 0
+    }
+
+    .kit-combo-del:hover {
+      background: rgba(255, 77, 90, .1)
+    }
+
+    .kit-combo-reqs {
+      font-size: 10px;
+      color: var(--tx3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .kit-combo-meta {
+      font-size: 10px;
+      color: var(--tx3)
+    }
+
+    .kit-badge-custom {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: rgba(160, 112, 255, .15);
+      color: var(--purple);
+      margin-left: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      vertical-align: middle
+    }
+
+    .kit-error {
+      font-size: 11px;
+      color: var(--red);
+      padding: 6px 8px;
+      background: rgba(255, 77, 90, .08);
+      border-radius: var(--radius);
+      margin-top: 6px
+    }
+
+    :root {
+      --bg: #f3f5f8;
+      /* tło elementów wewnątrz kart (paski, wpisy, pola) */
+      --bg2: #ffffff;
+      /* górny pasek, sidebar */
+      --bg3: #ffffff;
+      /* karty */
+      --bg4: #e9edf3;
+      /* hover / aktywne */
+      --tx: #161a22;
+      --tx2: #4a5261;
+      --tx3: #6f7888;
+      --acc: #0a8f63;
+      --acc2: #077a54;
+      --acc-dim: rgba(10, 143, 99, .10);
+      --red: #d92d3a;
+      --amber: #c77700;
+      --blue: #1f6fe0;
+      --purple: #7a4dd8;
+      --pink: #d6337f;
+      --teal: #00957a;
+      --line: #e1e5ec;
+      --font: 'Space Grotesk', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+      --radius: 6px;
+      --radius-lg: 8px;
+    }
+
+    body {
+      background: #fff;
+      color: var(--tx);
+      font-size: 14px
+    }
+
+    /* ── Układ ── */
+    .shell {
+      grid-template-columns: minmax(0, 1fr) 340px
+    }
+
+    .topbar {
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .topbar h1 {
+      font-size: 19px
+    }
+
+    .main {
+      padding: 20px 24px;
+      gap: 16px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-content: start
+    }
+
+    .main>.card:nth-child(2) {
+      order: -1;
+      grid-column: 1/-1
+    }
+
+    /* combo: wąski pasek na górze */
+    .main>.card:nth-child(4),
+    .main>.card:nth-child(5) {
+      grid-column: 1/-1
+    }
+
+    /* fale i pasma: pełna szerokość */
+    .sidebar {
+      padding: 20px 16px;
+      gap: 12px;
+      border-left: 1px solid var(--line)
+    }
+
+    /* ── Karty i nagłówki (bez wersalików) ── */
+    .card {
+      border: 1px solid var(--line);
+      box-shadow: none;
+      padding: 16px 18px
+    }
+
+    .card-head {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--tx);
+      text-transform: none;
+      letter-spacing: 0;
+      margin-bottom: 14px
+    }
+
+    .card-head>span {
+      font-weight: 400
+    }
+
+    .metric-label {
+      width: 96px;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 12px
+    }
+
+    .metric-bar-bg {
+      height: 16px
+    }
+
+    .metric-bar-fill::after {
+      background: rgba(0, 0, 0, .35)
+    }
+
+    .metric-val,
+    .ch-val,
+    .ch-stats,
+    .val,
+    .kit-val,
+    .kit-cond-mean,
+    .rec-timer,
+    .mental-conf-val {
+      font-family: var(--mono)
+    }
+
+    .metric-bar-fill.focus {
+      background: linear-gradient(90deg, rgba(10, 143, 99, .25), var(--acc))
+    }
+
+    .metric-bar-fill.calm {
+      background: linear-gradient(90deg, rgba(31, 111, 224, .25), var(--blue))
+    }
+
+    .metric-bar-fill.valence {
+      background: linear-gradient(90deg, rgba(122, 77, 216, .25), var(--purple))
+    }
+
+    .metric-bar-fill.instability {
+      background: linear-gradient(90deg, rgba(199, 119, 0, .25), var(--amber))
+    }
+
+    .metric-bar-fill.stress {
+      background: linear-gradient(90deg, rgba(217, 45, 58, .25), var(--red))
+    }
+
+    .metric-bar-fill.flow {
+      background: linear-gradient(90deg, rgba(214, 51, 127, .25), var(--pink))
+    }
+
+    /* ── Ramki: ciemne półprzezroczyste zamienione na jasne ── */
+    .state-btn,
+    .source-btn,
+    .tab-btn,
+    .rec-field input[type=text],
+    .rec-field textarea,
+    .rec-item-actions button,
+    .kit-rec-select,
+    .kit-seg-row input,
+    .kit-op-sel,
+    .kit-name-row input,
+    .kit-timing-row input,
+    .toggle-slider,
+    .chart-overlay .chart-close {
+      border-color: var(--line)
+    }
+
+    .setting-row,
+    .kit-cond-row,
+    .kit-section-label {
+      border-color: var(--line)
+    }
+
+    .sim-section {
+      border-top-color: var(--line)
+    }
+
+    .mental-state-display.active {
+      border-color: var(--line)
+    }
+
+    .mental-prob.top {
+      border-color: var(--line)
+    }
+
+    .cal-step.active {
+      border-color: rgba(10, 143, 99, .35)
+    }
+
+    .state-btn,
+    .source-btn,
+    .rec-item-actions button {
+      background: #fff
+    }
+
+    .state-btn:hover,
+    .rec-item:hover {
+      background: var(--bg)
+    }
+
+    .state-btn.active,
+    .source-btn.active {
+      background: var(--acc-dim)
+    }
+
+    .rec-btn.start:hover,
+    .cal-step.done .idx {
+      color: #fff
+    }
+
+    .rec-btn.stop:hover {
+      color: #fff
+    }
+
+    .band-bar.delta {
+      background: #5b5fd6
+    }
+
+    .band-bar.theta {
+      background: #d98a00
+    }
+
+    .band-legend .l-delta::before {
+      background: #5b5fd6
+    }
+
+    .band-legend .l-theta::before {
+      background: #d98a00
+    }
+
+    .toggle-slider::before {
+      background: #aab1bd
+    }
+
+    /* ── Zakładki: jedna siatka zamiast dwóch rzędów ── */
+    .sidebar>.tab-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin: 0 !important
+    }
+
+    .sidebar>.tab-row+.tab-row {
+      grid-template-columns: 1fr
+    }
+
+    .tab-btn {
+      border-radius: var(--radius) !important;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 12px;
+      padding: 8px 0;
+      border: 1px solid var(--line)
+    }
+
+    .tab-btn.active {
+      background: var(--acc-dim);
+      color: var(--acc);
+      border-color: rgba(10, 143, 99, .35)
+    }
+
+    /* ── Fale, pasma, wykresy ── */
+    .wave-card,
+    .band-cell {
+      border: 1px solid var(--line)
+    }
+
+    .wave-card .ch-name,
+    .band-cell .ch {
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 11px;
+      font-weight: 600
+    }
+
+    .wave-card canvas {
+      height: 90px
+    }
+
+    .combo-pill {
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 12px
+    }
+
+    .kit-timeline {
+      border: 1px solid var(--line)
+    }
+
+    .chart-overlay {
+      background: rgba(255, 255, 255, .97)
+    }
+
+    .chart-channel {
+      border: 1px solid var(--line)
+    }
+
+    .chart-channel .ch-label {
+      text-transform: none;
+      letter-spacing: 0
+    }
+
+    .chart-channel canvas {
+      background: #fff
+    }
+
+    /* ── Węższe ekrany ── */
+    @media (max-width:1100px) {
+      .main {
+        grid-template-columns: minmax(0, 1fr)
+      }
+    }
+
+    @media (max-width:860px) {
+      .shell {
+        grid-template-columns: minmax(0, 1fr);
+        height: auto
+      }
+
+      .sidebar {
+        border-left: 0;
+        border-top: 1px solid var(--line)
+      }
+
+      .main,
+      .topbar {
+        padding-left: 14px;
+        padding-right: 14px
+      }
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--acc);
+      outline-offset: 2px
+    }
+
+    :root {
+      --bg: #f3f5f8;
+      /* tło elementów wewnątrz kart (paski, wpisy, pola) */
+      --bg2: #ffffff;
+      /* górny pasek, sidebar */
+      --bg3: #ffffff;
+      /* karty */
+      --bg4: #e9edf3;
+      /* hover / aktywne */
+      --tx: #161a22;
+      --tx2: #4a5261;
+      --tx3: #6f7888;
+      --acc: #0a8f63;
+      --acc2: #077a54;
+      --acc-dim: rgba(10, 143, 99, .10);
+      --red: #d92d3a;
+      --amber: #c77700;
+      --blue: #1f6fe0;
+      --purple: #7a4dd8;
+      --pink: #d6337f;
+      --teal: #00957a;
+      --line: #e1e5ec;
+      --font: 'Space Grotesk', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+      --radius: 6px;
+      --radius-lg: 8px;
+    }
+
+    body {
+      background: #fff;
+      color: var(--tx);
+      font-size: 14px
+    }
+
+    /* ── Układ ── */
+    .shell {
+      grid-template-columns: minmax(0, 1fr) 340px
+    }
+
+    .topbar {
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .topbar h1 {
+      font-size: 19px
+    }
+
+    .main {
+      padding: 20px 24px;
+      gap: 16px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-content: start
+    }
+
+    .main>.card:nth-child(2) {
+      order: -1;
+      grid-column: 1/-1
+    }
+
+    /* combo: wąski pasek na górze */
+    .main>.card:nth-child(4),
+    .main>.card:nth-child(5) {
+      grid-column: 1/-1
+    }
+
+    /* fale i pasma: pełna szerokość */
+    .sidebar {
+      padding: 20px 16px;
+      gap: 12px;
+      border-left: 1px solid var(--line)
+    }
+
+    /* ── Karty i nagłówki (bez wersalików) ── */
+    .card {
+      border: 1px solid var(--line);
+      box-shadow: none;
+      padding: 16px 18px
+    }
+
+    .card-head {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--tx);
+      text-transform: none;
+      letter-spacing: 0;
+      margin-bottom: 14px
+    }
+
+    .card-head>span {
+      font-weight: 400
+    }
+
+    .metric-label {
+      width: 96px;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 12px
+    }
+
+    .metric-bar-bg {
+      height: 16px
+    }
+
+    .metric-bar-fill::after {
+      background: rgba(0, 0, 0, .35)
+    }
+
+    .metric-val,
+    .ch-val,
+    .ch-stats,
+    .val,
+    .kit-val,
+    .kit-cond-mean,
+    .rec-timer,
+    .mental-conf-val {
+      font-family: var(--mono)
+    }
+
+    .metric-bar-fill.focus {
+      background: linear-gradient(90deg, rgba(10, 143, 99, .25), var(--acc))
+    }
+
+    .metric-bar-fill.calm {
+      background: linear-gradient(90deg, rgba(31, 111, 224, .25), var(--blue))
+    }
+
+    .metric-bar-fill.valence {
+      background: linear-gradient(90deg, rgba(122, 77, 216, .25), var(--purple))
+    }
+
+    .metric-bar-fill.instability {
+      background: linear-gradient(90deg, rgba(199, 119, 0, .25), var(--amber))
+    }
+
+    .metric-bar-fill.stress {
+      background: linear-gradient(90deg, rgba(217, 45, 58, .25), var(--red))
+    }
+
+    .metric-bar-fill.flow {
+      background: linear-gradient(90deg, rgba(214, 51, 127, .25), var(--pink))
+    }
+
+    /* ── Ramki: ciemne półprzezroczyste zamienione na jasne ── */
+    .state-btn,
+    .source-btn,
+    .tab-btn,
+    .rec-field input[type=text],
+    .rec-field textarea,
+    .rec-item-actions button,
+    .kit-rec-select,
+    .kit-seg-row input,
+    .kit-op-sel,
+    .kit-name-row input,
+    .kit-timing-row input,
+    .toggle-slider,
+    .chart-overlay .chart-close {
+      border-color: var(--line)
+    }
+
+    .setting-row,
+    .kit-cond-row,
+    .kit-section-label {
+      border-color: var(--line)
+    }
+
+    .sim-section {
+      border-top-color: var(--line)
+    }
+
+    .mental-state-display.active {
+      border-color: var(--line)
+    }
+
+    .mental-prob.top {
+      border-color: var(--line)
+    }
+
+    .cal-step.active {
+      border-color: rgba(10, 143, 99, .35)
+    }
+
+    .state-btn,
+    .source-btn,
+    .rec-item-actions button {
+      background: #fff
+    }
+
+    .state-btn:hover,
+    .rec-item:hover {
+      background: var(--bg)
+    }
+
+    .state-btn.active,
+    .source-btn.active {
+      background: var(--acc-dim)
+    }
+
+    .rec-btn.start:hover,
+    .cal-step.done .idx {
+      color: #fff
+    }
+
+    .rec-btn.stop:hover {
+      color: #fff
+    }
+
+    .band-bar.delta {
+      background: #5b5fd6
+    }
+
+    .band-bar.theta {
+      background: #d98a00
+    }
+
+    .band-legend .l-delta::before {
+      background: #5b5fd6
+    }
+
+    .band-legend .l-theta::before {
+      background: #d98a00
+    }
+
+    .toggle-slider::before {
+      background: #aab1bd
+    }
+
+    /* ── Zakładki: jedna siatka zamiast dwóch rzędów ── */
+    .sidebar>.tab-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin: 0 !important
+    }
+
+    .sidebar>.tab-row+.tab-row {
+      grid-template-columns: 1fr
+    }
+
+    .tab-btn {
+      border-radius: var(--radius) !important;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 12px;
+      padding: 8px 0;
+      border: 1px solid var(--line)
+    }
+
+    .tab-btn.active {
+      background: var(--acc-dim);
+      color: var(--acc);
+      border-color: rgba(10, 143, 99, .35)
+    }
+
+    /* ── Fale, pasma, wykresy ── */
+    .wave-card,
+    .band-cell {
+      border: 1px solid var(--line)
+    }
+
+    .wave-card .ch-name,
+    .band-cell .ch {
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 11px;
+      font-weight: 600
+    }
+
+    .wave-card canvas {
+      height: 90px
+    }
+
+    .combo-pill {
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 12px
+    }
+
+    .kit-timeline {
+      border: 1px solid var(--line)
+    }
+
+    .chart-overlay {
+      background: rgba(255, 255, 255, .97)
+    }
+
+    .chart-channel {
+      border: 1px solid var(--line)
+    }
+
+    .chart-channel .ch-label {
+      text-transform: none;
+      letter-spacing: 0
+    }
+
+    .chart-channel canvas {
+      background: #fff
+    }
+
+    /* ── Węższe ekrany ── */
+    @media (max-width:1100px) {
+      .main {
+        grid-template-columns: minmax(0, 1fr)
+      }
+    }
+
+    @media (max-width:860px) {
+      .shell {
+        grid-template-columns: minmax(0, 1fr);
+        height: auto
+      }
+
+      .sidebar {
+        border-left: 0;
+        border-top: 1px solid var(--line)
+      }
+
+      .main,
+      .topbar {
+        padding-left: 14px;
+        padding-right: 14px
+      }
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--acc);
+      outline-offset: 2px
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <h1>Brain<span>Link</span></h1>
+      <div class="status">
+        <div class="dot" id="statusDot"></div>
+        <span id="statusText">Łączenie...</span>
+        <span style="margin-left:12px;color:var(--tx3)" id="fpsCounter">0 fps</span>
+        <div class="rec-indicator" id="recIndicator">
+          <div class="rec-dot"></div><span class="rec-label" id="recTimerTop">REC 00:00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main area -->
+    <div class="main">
+
+      <!-- Live metrics -->
+      <div class="card">
+        <div class="card-head">Metryki w czasie rzeczywistym</div>
+        <div id="metricsContainer">
+          <div class="metric-row"><span class="metric-label">Skupienie</span>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill focus" id="bar-focus" style="width:0%"></div>
+            </div><span class="metric-val" id="val-focus">0.00</span>
+          </div>
+          <div class="metric-row"><span class="metric-label">Spokój</span>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill calm" id="bar-calm" style="width:0%"></div>
+            </div><span class="metric-val" id="val-calm">0.00</span>
+          </div>
+          <div class="metric-row"><span class="metric-label">Waleczność</span>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill valence" id="bar-valence" style="width:0%"></div>
+            </div><span class="metric-val" id="val-valence">0.00</span>
+          </div>
+          <div class="metric-row"><span class="metric-label">Niestabil.</span>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill instability" id="bar-instability" style="width:0%"></div>
+            </div><span class="metric-val" id="val-instability">0.00</span>
+          </div>
+          <div class="metric-row"><span class="metric-label">Stres</span>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill stress" id="bar-stress" style="width:0%"></div>
+            </div><span class="metric-val" id="val-stress">0.00</span>
+          </div>
+          <div class="metric-row"><span class="metric-label">Flow</span>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill flow" id="bar-flow" style="width:0%"></div>
+            </div><span class="metric-val" id="val-flow">0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Combos -->
+      <div class="card">
+        <div class="card-head">Aktywne combo</div>
+        <div class="combo-zone" id="comboZone">
+          <span style="font-size:11px;color:var(--tx3)">Brak aktywnych combo</span>
+        </div>
+      </div>
+
+      <!-- Mental State Events -->
+      <div class="card mental-state-card">
+        <div class="mental-state-pulse" id="mentalPulse"></div>
+        <div class="card-head">Mental State<span id="mentalModelBadge"
+            style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">rule-based</span></div>
+        <div class="mental-state-display" id="mentalDisplay">
+          <div class="mental-icon" id="mentalIcon">—</div>
+          <div class="mental-info">
+            <div class="mental-label" id="mentalLabel">Neutral</div>
+            <div class="mental-sub" id="mentalSub">Waiting for signal...</div>
+          </div>
+          <div class="mental-confidence">
+            <div class="mental-conf-val" id="mentalConfVal">—</div>
+            <div class="mental-conf-label">confidence</div>
+          </div>
+        </div>
+        <div class="mental-prob-grid" id="mentalProbGrid"></div>
+        <div class="card-head" style="margin-top:12px;margin-bottom:6px;font-size:11px">Event Log</div>
+        <div class="event-log" id="eventLog">
+          <div style="font-size:11px;color:var(--tx3);text-align:center;padding:6px">No events yet</div>
+        </div>
+      </div>
+
+      <!-- EEG waves -->
+      <div class="card">
+        <div class="card-head">Surowe sygnały EEG</div>
+        <div class="wave-grid">
+          <div class="wave-card"><span class="ch-name">Fp1</span><span class="ch-val" id="chval-Fp1">—</span><canvas
+              id="wave-Fp1"></canvas>
+            <div class="ch-stats"><span id="chmin-Fp1">min —</span><span id="chavg-Fp1">avg —</span><span
+                id="chmax-Fp1">max —</span></div>
+          </div>
+          <div class="wave-card"><span class="ch-name">Fp2</span><span class="ch-val" id="chval-Fp2">—</span><canvas
+              id="wave-Fp2"></canvas>
+            <div class="ch-stats"><span id="chmin-Fp2">min —</span><span id="chavg-Fp2">avg —</span><span
+                id="chmax-Fp2">max —</span></div>
+          </div>
+          <div class="wave-card"><span class="ch-name">O1</span><span class="ch-val" id="chval-O1">—</span><canvas
+              id="wave-O1"></canvas>
+            <div class="ch-stats"><span id="chmin-O1">min —</span><span id="chavg-O1">avg —</span><span
+                id="chmax-O1">max —</span></div>
+          </div>
+          <div class="wave-card"><span class="ch-name">O2</span><span class="ch-val" id="chval-O2">—</span><canvas
+              id="wave-O2"></canvas>
+            <div class="ch-stats"><span id="chmin-O2">min —</span><span id="chavg-O2">avg —</span><span
+                id="chmax-O2">max —</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Band powers -->
+      <div class="card">
+        <div class="card-head">Moc pasm częstotliwości</div>
+        <div class="band-grid" id="bandGrid">
+          <div class="band-cell">
+            <div class="ch">Fp1</div>
+            <div class="band-bars" id="bands-Fp1"></div>
+          </div>
+          <div class="band-cell">
+            <div class="ch">Fp2</div>
+            <div class="band-bars" id="bands-Fp2"></div>
+          </div>
+          <div class="band-cell">
+            <div class="ch">O1</div>
+            <div class="band-bars" id="bands-O1"></div>
+          </div>
+          <div class="band-cell">
+            <div class="ch">O2</div>
+            <div class="band-bars" id="bands-O2"></div>
+          </div>
+        </div>
+        <div class="band-legend">
+          <span class="l-delta">Delta</span><span class="l-theta">Theta</span>
+          <span class="l-alpha">Alfa</span><span class="l-beta">Beta</span><span class="l-gamma">Gamma</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Sidebar tabs -->
+      <div class="tab-row">
+        <div class="tab-btn active" onclick="showTab('tab-cal')">Kalibracja</div>
+        <div class="tab-btn" onclick="showTab('tab-set')">Parametry</div>
+        <div class="tab-btn" onclick="showTab('tab-dev')">Urządzenie</div>
+        <div class="tab-btn" onclick="showTab('tab-rec')">Nagryw.</div>
+      </div>
+      <div class="tab-row" style="margin-top:-5px">
+        <div class="tab-btn" onclick="showTab('tab-kit');kitInit()">⚡ Kreator Combo</div>
+      </div>
+
+      <!-- Calibration tab -->
+      <div class="tab-panel active" id="tab-cal">
+        <div class="card">
+          <div class="card-head">Kalibracja<span id="calStatus"
+              style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">Nierozpoczęta</span></div>
+          <div id="calSteps">
+            <div class="cal-step" data-step="baseline">
+              <div class="idx">1</div>
+              <div class="info">Baseline — oczy otwarte (30s)</div>
+            </div>
+            <div class="cal-step" data-step="eyes_closed">
+              <div class="idx">2</div>
+              <div class="info">Oczy zamknięte — relaks (30s)</div>
+            </div>
+            <div class="cal-step" data-step="focus">
+              <div class="idx">3</div>
+              <div class="info">Skupienie — licz wstecz (30s)</div>
+            </div>
+            <div class="cal-step" data-step="stress">
+              <div class="idx">4</div>
+              <div class="info">Stres — szybki timer (20s)</div>
+            </div>
+            <div class="cal-step" data-step="flow">
+              <div class="idx">5</div>
+              <div class="info">Flow — migający punkt (20s)</div>
+            </div>
+          </div>
+          <button class="state-btn" style="margin-top:10px;width:100%;padding:8px" id="calBtn"
+            onclick="handleCalibration()">Rozpocznij kalibrację</button>
+        </div>
+      </div>
+
+      <!-- Settings tab -->
+      <div class="tab-panel" id="tab-set">
+        <div class="card">
+          <div class="card-head">Czułość metryk</div>
+          <div id="sensitivitySettings"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">Dead zone</div>
+          <div id="deadZoneSettings"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">Smoothing</div>
+          <div id="smoothingSettings"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">Combo</div>
+          <div id="comboSettings"></div>
+        </div>
+        <button class="state-btn" style="margin-top:6px;width:100%;padding:8px" onclick="resetSettings()">Reset do
+          kalibracji</button>
+      </div>
+
+      <!-- Device tab -->
+      <div class="tab-panel" id="tab-dev">
+        <div class="card">
+          <div class="card-head">Urządzenie HALO<span id="devStatusBadge"
+              style="font-size:10px;color:var(--red);text-transform:none;letter-spacing:0">Rozłączone</span></div>
+
+          <!-- Connection toggle -->
+          <div class="dev-toggle">
+            <span class="dev-label">Połączenie</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="devToggle" onchange="toggleDevice(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <!-- Device status -->
+          <div class="dev-status" id="devStatusPanel">
+            <div class="status-row"><span>Status</span><span class="status-val off" id="devConnStatus">ROZŁĄCZONE</span>
+            </div>
+            <div class="status-row"><span>Streaming</span><span class="status-val off" id="devStreamStatus">—</span>
+            </div>
+            <div class="status-row"><span>Nazwa</span><span class="status-val" id="devName">—</span></div>
+            <div class="status-row"><span>Backend</span><span class="status-val" id="devBackend">—</span></div>
+          </div>
+        </div>
+
+        <!-- Data source selector -->
+        <div class="card">
+          <div class="card-head">Źródło danych<span id="sourceLabel"
+              style="font-size:10px;color:var(--acc);text-transform:none;letter-spacing:0">symulator</span></div>
+          <div class="source-btns">
+            <button class="source-btn" id="srcBtn-device" onclick="setSource('device')">Urządzenie</button>
+            <button class="source-btn active" id="srcBtn-simulator" onclick="setSource('simulator')">Symulator</button>
+            <button class="source-btn" id="srcBtn-off" onclick="setSource('off')">Wyłączone</button>
+          </div>
+        </div>
+
+        <!-- Simulator controls (only when source=simulator) -->
+        <div class="card" id="simCard">
+          <div class="card-head">Symulator<span id="simStateLabel"
+              style="font-size:10px;color:var(--acc);text-transform:none;letter-spacing:0">baseline</span></div>
+          <div class="sim-section">
+            <div class="state-btns" id="stateButtons">
+              <button class="state-btn active" onclick="setSimState('baseline')">Baseline</button>
+              <button class="state-btn" onclick="setSimState('eyes_closed')">Zamkn. oczy</button>
+              <button class="state-btn" onclick="setSimState('focus')">Skupienie</button>
+              <button class="state-btn" onclick="setSimState('stress')">Stres</button>
+              <button class="state-btn" onclick="setSimState('panic_spike')">Panika!</button>
+              <button class="state-btn" onclick="setSimState('flow')">Flow</button>
+            </div>
+          </div>
+          <div class="sim-section">
+            <div style="font-size:11px;color:var(--tx3);margin-bottom:6px">Auto-scenariusze</div>
+            <div class="state-btns" style="margin-bottom:8px">
+              <button class="state-btn" onclick="startScenario('gaming_session')">Sesja gry</button>
+              <button class="state-btn" onclick="startScenario('horror_game')">Horror</button>
+              <button class="state-btn" onclick="startScenario('meditation_trainer')">Medytacja</button>
+              <button class="state-btn" onclick="startScenario('crafting_focus')">Crafting</button>
+            </div>
+            <button class="state-btn" style="width:100%;padding:6px;border-color:var(--red);color:var(--red)"
+              onclick="stopScenario()">Zatrzymaj scenariusz</button>
+            <div id="autoProgress" style="display:none;margin-top:10px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx2);margin-bottom:6px">
+                <span id="autoStepInfo">Krok 1/8</span>
+                <span id="autoTimeInfo">8s</span>
+              </div>
+              <div style="height:4px;background:var(--bg);border-radius:2px;overflow:hidden">
+                <div id="autoProgressBar"
+                  style="height:100%;background:var(--acc);border-radius:2px;transition:width 0.3s;width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recording tab -->
+      <div class="tab-panel" id="tab-rec">
+        <div class="card" id="recControls">
+          <div class="card-head">Nowe nagranie<span id="recStatus"
+              style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">Gotowe</span></div>
+          <div class="rec-field">
+            <label>Nazwa sesji</label>
+            <input type="text" id="recName" placeholder="np. Sesja medytacyjna" maxlength="100">
+          </div>
+          <div class="rec-field">
+            <label>Czas trwania</label>
+            <div class="rec-duration">
+              <input type="range" id="recDuration" min="1" max="20" step="1" value="5"
+                oninput="document.getElementById('recDurVal').textContent=this.value+' min'">
+              <span class="val" id="recDurVal">5 min</span>
+            </div>
+          </div>
+          <div id="recTimerDisplay" style="display:none">
+            <div class="rec-timer" id="recTimerText">00:00</div>
+            <div class="rec-progress">
+              <div class="rec-progress-bar" id="recProgressBar" style="width:0%"></div>
+            </div>
+            <div class="rec-info" id="recSampleCount">0 próbek</div>
+          </div>
+          <button class="rec-btn start" id="recBtn" onclick="toggleRecording()">Rozpocznij nagrywanie</button>
+          <div class="rec-field" style="margin-top:10px">
+            <label>Notatki (opcjonalne)</label>
+            <textarea id="recNotes" placeholder="Dodaj notatki do sesji..."></textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">Historia nagrań<span
+              style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0" id="recCount">0</span></div>
+          <div class="rec-list" id="recList">
+            <div style="font-size:11px;color:var(--tx3);text-align:center;padding:10px">Brak nagrań</div>
+          </div>
+          <button class="state-btn" style="margin-top:8px;width:100%;padding:6px" onclick="loadRecordings()">Odśwież
+            listę</button>
+        </div>
+      </div>
+
+      <!-- Kreator Combo tab -->
+      <div class="tab-panel" id="tab-kit">
+
+        <!-- Builder card -->
+        <div class="card">
+          <div class="card-head">Kreator Combo</div>
+
+          <!-- Step 1: pick recording -->
+          <div class="kit-section-label">1. Wybierz nagranie</div>
+          <select class="kit-rec-select" id="kitRecSelect" onchange="kitSelectRec()">
+            <option value="">— brak nagrań —</option>
+          </select>
+
+          <!-- Step 2: set time window -->
+          <div id="kitSegmentPanel" style="display:none">
+            <div class="kit-section-label">2. Wybierz fragment sesji</div>
+            <div class="kit-seg-row">
+              <label>Od <input type="number" id="kitSegStart" min="0" step="1" value="0"> s</label>
+              <label>Do <input type="number" id="kitSegEnd" min="2" step="1" value="30"> s</label>
+            </div>
+            <div id="kitRecInfo" style="font-size:10px;color:var(--tx3);margin-top:4px"></div>
+            <button class="state-btn" id="kitAnalyzeBtn" style="margin-top:8px;width:100%;padding:7px"
+              onclick="kitAnalyze()">Analizuj fragment →</button>
+            <div id="kitError" style="display:none" class="kit-error"></div>
+          </div>
+
+          <!-- Step 3: conditions from analysis -->
+          <div id="kitAnalysisPanel" style="display:none">
+            <canvas class="kit-timeline" id="kitTimelineCanvas"></canvas>
+            <div class="kit-section-label">3. Skonfiguruj warunki</div>
+            <div style="font-size:10px;color:var(--tx3);margin-bottom:6px">Zaznaczone metryki zostaną wymagane do
+              aktywacji combo.</div>
+            <div id="kitConditions"></div>
+
+            <!-- Step 4: name + save -->
+            <div class="kit-section-label">4. Nazwij i zapisz</div>
+            <div class="kit-name-row">
+              <input id="kitComboName" placeholder="nazwa_combo (a-z, 0-9, _)" maxlength="32">
+            </div>
+            <div class="kit-timing-row">
+              <label>Sustain (s)<input type="number" id="kitSustain" min="0.5" max="10" step="0.5" value="2.0"></label>
+              <label>Cooldown (s)<input type="number" id="kitCooldown" min="1" max="60" step="1" value="8.0"></label>
+            </div>
+            <button class="state-btn"
+              style="margin-top:10px;width:100%;padding:8px;border-color:var(--acc);color:var(--acc)"
+              onclick="kitSaveCombo()">💾 Zapisz combo</button>
+          </div>
+        </div>
+
+        <!-- Saved custom combos -->
+        <div class="card">
+          <div class="card-head">Własne combo<span id="kitCustomCount"
+              style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">0</span></div>
+          <div id="kitComboList">
+            <div style="font-size:11px;color:var(--tx3);text-align:center;padding:8px">Brak własnych combo</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Chart overlay for viewing recorded sessions -->
+    <div class="chart-overlay" id="chartOverlay">
+      <div class="chart-header">
+        <div class="chart-title" id="chartTitle">Nagranie</div>
+        <button class="chart-close" onclick="closeChartOverlay()">Zamknij</button>
+      </div>
+      <div class="chart-notes" id="chartNotes" style="display:none"></div>
+      <div id="chartChannels"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const CHANNELS = ['Fp1', 'Fp2', 'O1', 'O2'];
+    const BANDS = ['delta', 'theta', 'alpha', 'beta', 'gamma'];
+    const METRICS = ['focus', 'calm', 'valence', 'instability', 'stress', 'flow'];
+    const METRIC_NAMES = { focus: 'Skupienie', calm: 'Spokój', valence: 'Waleczność', instability: 'Niestabil.', stress: 'Stres', flow: 'Flow' };
+    const METRIC_COLORS = { focus: '#00e5a0', calm: '#3d9eff', valence: '#a070ff', instability: '#ffb020', stress: '#ff4d5a', flow: '#ff5ca0' };
+    const COMBO_NAMES = ['super_flow', 'panic', 'zen_heal', 'berserker'];
+
+    let ws = null;
+    let frameCount = 0;
+    let lastFpsTime = Date.now();
+    let waveHistories = {};
+    CHANNELS.forEach(ch => waveHistories[ch] = []);
+
+    // ─── Wave rendering ───────────────────────────────────────────────
+    const waveCanvases = {};
+    const waveCtxs = {};
+    CHANNELS.forEach(ch => {
+      const c = document.getElementById('wave-' + ch);
+      c.width = c.offsetWidth * 2;
+      c.height = 160;
+      waveCanvases[ch] = c;
+      waveCtxs[ch] = c.getContext('2d');
+    });
+
+    function drawWave(ch, newSamples) {
+      const hist = waveHistories[ch];
+      hist.push(...newSamples);
+      if (hist.length > 300) hist.splice(0, hist.length - 300);
+
+      // Update numerical values
+      if (newSamples.length > 0) {
+        const last = newSamples[newSamples.length - 1];
+        document.getElementById('chval-' + ch).textContent = last.toFixed(2) + ' µV';
+      }
+      if (hist.length > 1) {
+        let mn = Infinity, mx = -Infinity, sum = 0;
+        for (let i = 0; i < hist.length; i++) { mn = Math.min(mn, hist[i]); mx = Math.max(mx, hist[i]); sum += hist[i]; }
+        document.getElementById('chmin-' + ch).textContent = 'min ' + mn.toFixed(1);
+        document.getElementById('chavg-' + ch).textContent = 'avg ' + (sum / hist.length).toFixed(1);
+        document.getElementById('chmax-' + ch).textContent = 'max ' + mx.toFixed(1);
+      }
+
+      const ctx = waveCtxs[ch];
+      const w = waveCanvases[ch].width;
+      const h = waveCanvases[ch].height;
+      ctx.clearRect(0, 0, w, h);
+
+      if (hist.length < 2) return;
+
+      // Auto-scale: find min/max in visible window
+      let minV = Infinity, maxV = -Infinity;
+      for (let i = 0; i < hist.length; i++) {
+        if (hist[i] < minV) minV = hist[i];
+        if (hist[i] > maxV) maxV = hist[i];
+      }
+      const range = maxV - minV || 1;
+      const pad = 8;
+
+      const color = ch.startsWith('F') ? '#00e5a0' : '#3d9eff';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      const step = w / 300;
+      for (let i = 0; i < hist.length; i++) {
+        const x = i * step;
+        const y = pad + ((maxV - hist[i]) / range) * (h - pad * 2);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // ─── Band power bars ──────────────────────────────────────────────
+    CHANNELS.forEach(ch => {
+      const container = document.getElementById('bands-' + ch);
+      BANDS.forEach(band => {
+        const bar = document.createElement('div');
+        bar.className = 'band-bar ' + band;
+        bar.id = 'bb-' + ch + '-' + band;
+        bar.style.height = '2px';
+        container.appendChild(bar);
+      });
+    });
+
+    function updateBands(bandPowers) {
+      if (!bandPowers) return;
+      CHANNELS.forEach(ch => {
+        const chData = bandPowers[ch];
+        if (!chData) return;
+        const maxVal = Math.max(...BANDS.map(b => chData[b] || 0), 1);
+        BANDS.forEach(band => {
+          const el = document.getElementById('bb-' + ch + '-' + band);
+          const val = chData[band] || 0;
+          el.style.height = Math.max(2, (val / maxVal) * 38) + 'px';
+        });
+      });
+    }
+
+    // ─── Metrics ──────────────────────────────────────────────────────
+    function updateMetrics(metrics) {
+      if (!metrics) return;
+      METRICS.forEach(m => {
+        const val = metrics[m] || 0;
+        const pct = Math.round(val * 100);
+        document.getElementById('bar-' + m).style.width = pct + '%';
+        document.getElementById('val-' + m).textContent = val.toFixed(2);
+      });
+    }
+
+    // ─── Combos ───────────────────────────────────────────────────────
+    function updateCombos(activeCombos, comboTimers) {
+      const zone = document.getElementById('comboZone');
+      let html = '';
+      COMBO_NAMES.forEach(name => {
+        const isActive = activeCombos && activeCombos.includes(name);
+        const timer = comboTimers && comboTimers[name];
+        const isCooldown = timer && timer.cooldown_remaining > 0;
+
+        if (isActive) {
+          html += `<span class="combo-pill active ${name}">${name.replace('_', ' ')} (${timer?.active_sec || 0}s)</span>`;
+        } else if (isCooldown) {
+          html += `<span class="combo-pill cooldown ${name}">${name.replace('_', ' ')} CD:${timer.cooldown_remaining}s</span>`;
+        }
+      });
+      zone.innerHTML = html || '<span style="font-size:11px;color:var(--tx3)">Brak aktywnych combo</span>';
+    }
+
+    // ─── FPS counter ──────────────────────────────────────────────────
+    function updateFps() {
+      frameCount++;
+      const now = Date.now();
+      if (now - lastFpsTime >= 1000) {
+        document.getElementById('fpsCounter').textContent = frameCount + ' fps';
+        frameCount = 0;
+        lastFpsTime = now;
+      }
+    }
+
+    // ─── Mental State Events ──────────────────────────────────────────
+    const STATE_META = {
+      neutral: { label: 'Neutral', icon: '—', color: '#9a9890' },
+      meditation: { label: 'Meditation', icon: '🧘', color: '#a070ff' },
+      focused: { label: 'Focused', icon: '🎯', color: '#00e5a0' },
+      relaxed: { label: 'Relaxed', icon: '🌊', color: '#3d9eff' },
+      visualization: { label: 'Visualization', icon: '👁', color: '#ff5ca0' },
+      breathing: { label: 'Breathing', icon: '🌬', color: '#00d4aa' },
+      drowsy: { label: 'Drowsy', icon: '😴', color: '#ffb020' },
+      stressed: { label: 'Stressed', icon: '⚡', color: '#ff4d5a' },
+    };
+    let prevMentalState = 'neutral';
+    let mentalEventLog = [];
+    const MAX_EVENTS = 20;
+
+    function initMentalProbGrid() {
+      const grid = document.getElementById('mentalProbGrid');
+      let html = '';
+      for (const [key, meta] of Object.entries(STATE_META)) {
+        html += `<div class="mental-prob" id="mp-${key}">
+      <div class="mp-icon">${meta.icon}</div>
+      <div class="mp-name">${meta.label}</div>
+      <div class="mp-bar"><div class="mp-fill" id="mpf-${key}" style="width:0%;background:${meta.color}"></div></div>
+      <div class="mp-pct" id="mpp-${key}" style="color:${meta.color}">0%</div>
+    </div>`;
+      }
+      grid.innerHTML = html;
+    }
+
+    function updateMentalState(ms) {
+      if (!ms) return;
+      const st = ms.state || 'neutral';
+      const conf = ms.confidence || 0;
+      const dur = ms.duration_sec || 0;
+      const meta = STATE_META[st] || STATE_META.neutral;
+      const probs = ms.all_probs || {};
+
+      // Main display
+      const display = document.getElementById('mentalDisplay');
+      display.className = 'mental-state-display' + (st !== 'neutral' ? ' active' : '');
+      display.style.borderColor = st !== 'neutral' ? meta.color + '40' : 'transparent';
+
+      document.getElementById('mentalIcon').textContent = meta.icon;
+      const labelEl = document.getElementById('mentalLabel');
+      labelEl.textContent = meta.label;
+      labelEl.style.color = meta.color;
+
+      const durStr = dur >= 60 ? Math.floor(dur / 60) + 'm ' + Math.floor(dur % 60) + 's' : Math.floor(dur) + 's';
+      document.getElementById('mentalSub').textContent =
+        st !== 'neutral' ? `Active for ${durStr} · ${(conf * 100).toFixed(0)}% confident` : 'No dominant state detected';
+
+      document.getElementById('mentalConfVal').textContent = (conf * 100).toFixed(0) + '%';
+      document.getElementById('mentalConfVal').style.color = meta.color;
+
+      // Pulse background
+      const pulse = document.getElementById('mentalPulse');
+      pulse.style.background = st !== 'neutral' ? meta.color : 'transparent';
+      pulse.style.opacity = st !== 'neutral' ? '1' : '0';
+
+      // Probability grid
+      for (const [key, smeta] of Object.entries(STATE_META)) {
+        const p = probs[key] || 0;
+        const pct = Math.round(p * 100);
+        const fill = document.getElementById('mpf-' + key);
+        const pctEl = document.getElementById('mpp-' + key);
+        const cell = document.getElementById('mp-' + key);
+        if (fill) fill.style.width = pct + '%';
+        if (pctEl) pctEl.textContent = pct + '%';
+        if (cell) cell.className = 'mental-prob' + (key === st ? ' top' : '');
+      }
+
+      // Event log — log state transitions
+      if (st !== prevMentalState) {
+        if (st !== 'neutral') {
+          addMentalEvent(st, meta, 'entered');
+        }
+        if (prevMentalState !== 'neutral') {
+          const prevMeta = STATE_META[prevMentalState] || STATE_META.neutral;
+          addMentalEvent(prevMentalState, prevMeta, 'exited');
+        }
+        prevMentalState = st;
+      }
+    }
+
+    function addMentalEvent(state, meta, action) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const entry = { time: timeStr, state, icon: meta.icon, label: meta.label, color: meta.color, action };
+      mentalEventLog.unshift(entry);
+      if (mentalEventLog.length > MAX_EVENTS) mentalEventLog.pop();
+      renderEventLog();
+    }
+
+    function renderEventLog() {
+      const el = document.getElementById('eventLog');
+      if (mentalEventLog.length === 0) {
+        el.innerHTML = '<div style="font-size:11px;color:var(--tx3);text-align:center;padding:6px">No events yet</div>';
+        return;
+      }
+      el.innerHTML = mentalEventLog.map(e => {
+        const verb = e.action === 'entered' ? '→ entered' : '← exited';
+        return `<div class="event-entry">
+      <span class="ev-time">${e.time}</span>
+      <span class="ev-icon">${e.icon}</span>
+      <span class="ev-text" style="color:${e.color}">${e.label} ${verb}</span>
+    </div>`;
+      }).join('');
+    }
+
+    initMentalProbGrid();
+
+    // ─── WebSocket ────────────────────────────────────────────────────
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(proto + '//' + location.host + '/api/v1/stream');
+
+      ws.onopen = () => {
+        document.getElementById('statusText').textContent = 'Połączono';
+        document.getElementById('statusDot').style.background = 'var(--acc)';
+      };
+      ws.onclose = () => {
+        document.getElementById('statusText').textContent = 'Rozłączono — ponawiam...';
+        document.getElementById('statusDot').style.background = 'var(--red)';
+        setTimeout(connect, 2000);
+      };
+      ws.onerror = () => ws.close();
+
+      ws.onmessage = (e) => {
+        const frame = JSON.parse(e.data);
+        updateFps();
+
+        // raw waves
+        if (frame.raw_preview) {
+          CHANNELS.forEach(ch => {
+            if (frame.raw_preview[ch]) drawWave(ch, frame.raw_preview[ch]);
+          });
+        }
+
+        updateBands(frame.band_powers);
+        updateMetrics(frame.metrics);
+        updateCombos(frame.active_combos, frame.combo_timers);
+        updateMentalState(frame.mental_state);
+        updateSimulatorDisplay(frame.simulator);
+        updateRecordingFromFrame(frame.recording);
+        updateDeviceStatus(frame);
+        updateSourceDisplay(frame.source);
+      };
+    }
+
+    // ─── Device management ────────────────────────────────────────────
+    let deviceConnecting = false;
+
+    async function toggleDevice(on) {
+      if (deviceConnecting) return;
+      deviceConnecting = true;
+      const toggle = document.getElementById('devToggle');
+
+      try {
+        if (on) {
+          // Scan → Connect → Start stream
+          document.getElementById('devStatusBadge').textContent = 'Skanowanie...';
+          document.getElementById('devStatusBadge').style.color = 'var(--amber)';
+          const scanRes = await fetch('/api/v1/device/scan', { method: 'POST' });
+          const scanData = await scanRes.json();
+          const devices = scanData.devices || [];
+          const halo = devices.find(d => (d.name || '').includes('HALO'));
+          if (!halo) {
+            alert('Nie znaleziono urządzenia HALO. Upewnij się, że jest włączone.');
+            toggle.checked = false;
+            document.getElementById('devStatusBadge').textContent = 'Rozłączone';
+            document.getElementById('devStatusBadge').style.color = 'var(--red)';
+            return;
+          }
+          document.getElementById('devStatusBadge').textContent = 'Łączenie...';
+          const connRes = await fetch('/api/v1/device/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ device_name: halo.name }) });
+          if (!connRes.ok) { throw new Error('Connection failed'); }
+
+          document.getElementById('devStatusBadge').textContent = 'Stream...';
+          await fetch('/api/v1/device/start-stream', { method: 'POST' });
+
+          document.getElementById('devStatusBadge').textContent = 'Połączone';
+          document.getElementById('devStatusBadge').style.color = 'var(--acc)';
+
+          // Switch source to device
+          setSource('device');
+        } else {
+          // Stop stream → Disconnect
+          await fetch('/api/v1/device/stop-stream', { method: 'POST' });
+          await fetch('/api/v1/device/disconnect', { method: 'POST' });
+          document.getElementById('devStatusBadge').textContent = 'Rozłączone';
+          document.getElementById('devStatusBadge').style.color = 'var(--red)';
+        }
+      } catch (e) {
+        console.error('Device toggle error:', e);
+        toggle.checked = false;
+        document.getElementById('devStatusBadge').textContent = 'Błąd';
+        document.getElementById('devStatusBadge').style.color = 'var(--red)';
+        alert('Błąd połączenia: ' + e.message);
+      } finally {
+        deviceConnecting = false;
+      }
+    }
+
+    function updateDeviceStatus(frame) {
+      const dev = frame.device;
+      if (!dev) return;
+
+      const isConn = dev.connected;
+      const isStream = dev.streaming;
+
+      // Badge
+      const badge = document.getElementById('devStatusBadge');
+      if (isStream) {
+        badge.textContent = 'Streaming';
+        badge.style.color = 'var(--acc)';
+      } else if (isConn) {
+        badge.textContent = 'Połączone';
+        badge.style.color = 'var(--acc)';
+      } else {
+        badge.textContent = 'Rozłączone';
+        badge.style.color = 'var(--red)';
+      }
+
+      // Toggle sync
+      const toggle = document.getElementById('devToggle');
+      if (!deviceConnecting) toggle.checked = isConn;
+
+      // Status rows
+      const connEl = document.getElementById('devConnStatus');
+      connEl.textContent = isConn ? 'POŁĄCZONE' : 'ROZŁĄCZONE';
+      connEl.className = 'status-val ' + (isConn ? 'on' : 'off');
+
+      const streamEl = document.getElementById('devStreamStatus');
+      streamEl.textContent = isStream ? 'AKTYWNY' : '—';
+      streamEl.className = 'status-val ' + (isStream ? 'on' : 'off');
+
+      document.getElementById('devName').textContent = dev.name || '—';
+      document.getElementById('devBackend').textContent = dev.backend || (dev.address ? 'BLE' : '—');
+
+      // Topbar source info
+      const src = frame.source;
+      const statusText = document.getElementById('statusText');
+      if (src === 'device' && isStream) {
+        statusText.textContent = 'Urządzenie: ' + (dev.name || 'HALO');
+        document.getElementById('statusDot').style.background = 'var(--acc)';
+      } else if (src === 'simulator') {
+        statusText.textContent = 'Symulator';
+        document.getElementById('statusDot').style.background = 'var(--amber)';
+      } else if (src === 'off') {
+        statusText.textContent = 'Wyłączone';
+        document.getElementById('statusDot').style.background = 'var(--tx3)';
+      }
+    }
+
+    function updateSourceDisplay(source) {
+      if (!source) return;
+      ['device', 'simulator', 'off'].forEach(s => {
+        const btn = document.getElementById('srcBtn-' + s);
+        if (!btn) return;
+        btn.className = 'source-btn' + (s === source ? (s === 'off' ? ' off-active' : ' active') : '');
+      });
+      document.getElementById('sourceLabel').textContent = source === 'device' ? 'urządzenie' : source === 'off' ? 'wyłączone' : 'symulator';
+      document.getElementById('sourceLabel').style.color = source === 'device' ? 'var(--acc)' : source === 'off' ? 'var(--red)' : 'var(--amber)';
+
+      // Show/hide simulator card
+      const simCard = document.getElementById('simCard');
+      if (simCard) simCard.style.display = source === 'simulator' ? 'block' : 'none';
+    }
+
+    async function setSource(src) {
+      if (src === 'device') {
+        // Check if device is connected
+        const res = await fetch('/api/v1/device/status');
+        const data = await res.json();
+        if (!data.device || !data.device.streaming) {
+          alert('Najpierw połącz urządzenie (przełącznik ON/OFF powyżej)');
+          return;
+        }
+      }
+      await fetch('/api/v1/source/' + src, { method: 'POST' });
+      updateSourceDisplay(src);
+    }
+
+    // ─── Simulator state ──────────────────────────────────────────────
+    function setSimState(state) {
+      fetch('/api/v1/debug/set-state/' + state, { method: 'POST' });
+      document.querySelectorAll('#stateButtons .state-btn').forEach(b => b.classList.remove('active'));
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ action: 'set_state', state }));
+    }
+
+    function startScenario(name) {
+      fetch('/api/v1/debug/set-state/auto:' + name, { method: 'POST' });
+      document.getElementById('autoLabel').textContent = name.replace('_', ' ');
+      document.getElementById('autoLabel').style.color = 'var(--acc)';
+      document.getElementById('autoProgress').style.display = 'block';
+    }
+
+    function stopScenario() {
+      fetch('/api/v1/debug/set-state/auto_stop', { method: 'POST' });
+      document.getElementById('autoLabel').textContent = 'Nieaktywny';
+      document.getElementById('autoLabel').style.color = 'var(--tx3)';
+      document.getElementById('autoProgress').style.display = 'none';
+    }
+
+    const STATE_COLORS = {
+      baseline: 'var(--tx3)', eyes_closed: 'var(--blue)', focus: 'var(--acc)',
+      stress: 'var(--red)', panic_spike: 'var(--red)', flow: 'var(--pink)'
+    };
+
+    function updateSimulatorDisplay(simInfo) {
+      if (!simInfo) return;
+      // current state label
+      const label = document.getElementById('simStateLabel');
+      const rawState = simInfo.state || 'baseline';
+      const displayState = rawState.includes('>') ? rawState.split('>')[1] : rawState;
+      label.textContent = displayState;
+      label.style.color = STATE_COLORS[displayState] || 'var(--acc)';
+
+      // highlight active manual button
+      document.querySelectorAll('#stateButtons .state-btn').forEach(b => {
+        const btnState = b.textContent.toLowerCase();
+        const isMatch = displayState === 'panic_spike' ? btnState.includes('panik') :
+          displayState === 'eyes_closed' ? btnState.includes('zamkn') :
+            btnState.includes(displayState.substring(0, 4));
+        b.classList.toggle('active', isMatch);
+      });
+
+      // auto progress
+      if (simInfo.auto_mode && simInfo.auto_progress) {
+        const p = simInfo.auto_progress;
+        document.getElementById('autoProgress').style.display = 'block';
+        document.getElementById('autoStepInfo').textContent =
+          `Krok ${p.step_idx + 1}/${p.total_steps}: ${p.current_state}`;
+        document.getElementById('autoTimeInfo').textContent = p.step_remaining_sec + 's';
+        const pct = ((p.step_idx) / p.total_steps) * 100;
+        document.getElementById('autoProgressBar').style.width = pct + '%';
+      } else {
+        if (document.getElementById('autoProgress').style.display !== 'none') {
+          document.getElementById('autoLabel').textContent = 'Nieaktywny';
+          document.getElementById('autoLabel').style.color = 'var(--tx3)';
+          document.getElementById('autoProgress').style.display = 'none';
+        }
+      }
+    }
+
+    // ─── Calibration ──────────────────────────────────────────────────
+    let calSession = null;
+    let calStepIdx = 0;
+    const CAL_STEPS = ['baseline', 'eyes_closed', 'focus', 'stress', 'flow'];
+    const CAL_DURATIONS = [30, 30, 30, 20, 20];
+    let calTimer = null;
+
+    async function handleCalibration() {
+      const btn = document.getElementById('calBtn');
+
+      if (!calSession) {
+        // start
+        const res = await fetch('/api/v1/calibration/start', { method: 'POST' });
+        calSession = await res.json();
+        calStepIdx = 0;
+        btn.textContent = 'Zakończ krok (baseline)';
+        document.getElementById('calStatus').textContent = 'W trakcie...';
+        updateCalStepUI();
+        startCalTimer();
+        return;
+      }
+
+      // complete current step
+      clearInterval(calTimer);
+      const step = CAL_STEPS[calStepIdx];
+      const res = await fetch(`/api/v1/calibration/${calSession.session_id}/step/${step}/complete`, { method: 'POST' });
+      const result = await res.json();
+
+      calStepIdx++;
+      updateCalStepUI();
+
+      if (result.completed) {
+        calSession = null;
+        btn.textContent = 'Ponów kalibrację';
+        document.getElementById('calStatus').textContent = 'Zakończona';
+        // load profile
+        loadSettings();
+      } else {
+        btn.textContent = `Zakończ krok (${result.next_step})`;
+        startCalTimer();
+      }
+    }
+
+    function updateCalStepUI() {
+      document.querySelectorAll('.cal-step').forEach((el, i) => {
+        el.className = 'cal-step' + (i < calStepIdx ? ' done' : i === calStepIdx ? ' active' : '');
+      });
+    }
+
+    function startCalTimer() {
+      let remaining = CAL_DURATIONS[calStepIdx];
+      const btn = document.getElementById('calBtn');
+      const step = CAL_STEPS[calStepIdx];
+      calTimer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(calTimer);
+          btn.textContent = `Zakończ krok (${step}) — GOTOWE`;
+        } else {
+          btn.textContent = `Zakończ krok (${step}) — ${remaining}s`;
+        }
+      }, 1000);
+    }
+
+    // ─── Settings ─────────────────────────────────────────────────────
+    async function loadSettings() {
+      const res = await fetch('/api/v1/users/default/settings');
+      const data = await res.json();
+      renderSettings(data);
+    }
+
+    function renderSettings(data) {
+      // Sensitivity sliders
+      let html = '';
+      METRICS.forEach(m => {
+        const s = data.metrics[m];
+        html += `<div class="setting-row"><label>${METRIC_NAMES[m]}</label>
+      <input type="range" min="0.1" max="3" step="0.1" value="${s?.sensitivity || 1}" onchange="patchMetric('${m}','sensitivity',this.value)">
+      <span class="val" id="sens-${m}">${(s?.sensitivity || 1).toFixed(1)}</span></div>`;
+      });
+      document.getElementById('sensitivitySettings').innerHTML = html;
+
+      // Dead zone
+      html = '';
+      METRICS.forEach(m => {
+        const s = data.metrics[m];
+        html += `<div class="setting-row"><label>${METRIC_NAMES[m]}</label>
+      <input type="range" min="0" max="0.3" step="0.01" value="${s?.dead_zone || 0.05}" onchange="patchMetric('${m}','dead_zone',this.value)">
+      <span class="val" id="dz-${m}">${(s?.dead_zone || 0.05).toFixed(2)}</span></div>`;
+      });
+      document.getElementById('deadZoneSettings').innerHTML = html;
+
+      // Smoothing
+      html = '';
+      METRICS.forEach(m => {
+        const s = data.metrics[m];
+        html += `<div class="setting-row"><label>${METRIC_NAMES[m]}</label>
+      <input type="range" min="0" max="0.9" step="0.05" value="${s?.smoothing || 0.3}" onchange="patchMetric('${m}','smoothing',this.value)">
+      <span class="val" id="sm-${m}">${(s?.smoothing || 0.3).toFixed(2)}</span></div>`;
+      });
+      document.getElementById('smoothingSettings').innerHTML = html;
+
+      // Combos
+      html = '';
+      COMBO_NAMES.forEach(name => {
+        const c = data.combos[name];
+        const checked = c?.enabled !== false ? 'checked' : '';
+        html += `<div class="setting-row"><label>${name.replace('_', ' ')}</label>
+      <input type="checkbox" ${checked} onchange="patchCombo('${name}','enabled',this.checked)"></div>`;
+      });
+      document.getElementById('comboSettings').innerHTML = html;
+    }
+
+    async function patchMetric(metric, param, value) {
+      const numVal = parseFloat(value);
+      const body = { metrics: { [metric]: { [param]: numVal } } };
+      await fetch('/api/v1/users/default/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      // update label
+      const prefix = param === 'sensitivity' ? 'sens' : param === 'dead_zone' ? 'dz' : 'sm';
+      const el = document.getElementById(`${prefix}-${metric}`);
+      if (el) el.textContent = param === 'sensitivity' ? numVal.toFixed(1) : numVal.toFixed(2);
+    }
+
+    async function patchCombo(combo, param, value) {
+      const body = { combos: { [combo]: { [param]: value } } };
+      await fetch('/api/v1/users/default/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+    }
+
+    async function resetSettings() {
+      await fetch('/api/v1/users/default/settings/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      loadSettings();
+    }
+
+    // ─── Tabs ─────────────────────────────────────────────────────────
+    function showTab(id) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      event.target.classList.add('active');
+      if (id === 'tab-rec') loadRecordings();
+      if (id === 'tab-kit') kitInit();
+    }
+
+    // ─── Recording ────────────────────────────────────────────────────
+    let isRecording = false;
+    let recStartTime = null;
+    let recDurationSec = 300;
+    let recTimerInterval = null;
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = Math.floor(sec % 60).toString().padStart(2, '0');
+      return m + ':' + s;
+    }
+
+    async function toggleRecording() {
+      if (!isRecording) {
+        // Start recording
+        const name = document.getElementById('recName').value.trim() || 'Sesja ' + new Date().toLocaleString('pl');
+        const durMin = parseInt(document.getElementById('recDuration').value) || 5;
+        recDurationSec = durMin * 60;
+
+        const res = await fetch('/api/v1/recording/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, duration_sec: recDurationSec })
+        });
+        if (!res.ok) { alert('Nie udało się rozpocząć nagrywania'); return; }
+
+        isRecording = true;
+        recStartTime = Date.now();
+        document.getElementById('recBtn').textContent = 'Zatrzymaj nagrywanie';
+        document.getElementById('recBtn').className = 'rec-btn stop';
+        document.getElementById('recStatus').textContent = 'Nagrywanie...';
+        document.getElementById('recStatus').style.color = 'var(--red)';
+        document.getElementById('recTimerDisplay').style.display = 'block';
+        document.getElementById('recName').disabled = true;
+        document.getElementById('recDuration').disabled = true;
+        document.getElementById('recIndicator').classList.add('active');
+
+        // Save notes now (in case user already typed them)
+        saveNotes();
+
+        // Start timer
+        recTimerInterval = setInterval(updateRecTimer, 500);
+      } else {
+        // Stop recording
+        await fetch('/api/v1/recording/stop', { method: 'POST' });
+        // Save notes
+        await saveNotes();
+        stopRecordingUI();
+        loadRecordings();
+      }
+    }
+
+    function updateRecTimer() {
+      const elapsed = (Date.now() - recStartTime) / 1000;
+      const remaining = Math.max(0, recDurationSec - elapsed);
+      const pct = Math.min(100, (elapsed / recDurationSec) * 100);
+
+      document.getElementById('recTimerText').textContent = formatTime(elapsed);
+      document.getElementById('recProgressBar').style.width = pct + '%';
+      document.getElementById('recTimerTop').textContent = 'REC ' + formatTime(elapsed);
+
+      if (remaining <= 0) {
+        stopRecordingUI();
+        loadRecordings();
+      }
+    }
+
+    function updateRecordingFromFrame(recInfo) {
+      if (recInfo && recInfo.recording) {
+        if (!isRecording) {
+          // Server is recording but UI doesn't know yet
+          isRecording = true;
+          recStartTime = Date.now() - ((recInfo.elapsed_sec || 0) * 1000);
+          recDurationSec = recInfo.duration_sec || 300;
+          document.getElementById('recBtn').textContent = 'Zatrzymaj nagrywanie';
+          document.getElementById('recBtn').className = 'rec-btn stop';
+          document.getElementById('recTimerDisplay').style.display = 'block';
+          document.getElementById('recIndicator').classList.add('active');
+          if (!recTimerInterval) recTimerInterval = setInterval(updateRecTimer, 500);
+        }
+        document.getElementById('recSampleCount').textContent = (recInfo.sample_count || 0) + ' próbek';
+      } else if (isRecording) {
+        // Server stopped recording
+        stopRecordingUI();
+      }
+    }
+
+    function stopRecordingUI() {
+      isRecording = false;
+      clearInterval(recTimerInterval);
+      recTimerInterval = null;
+      document.getElementById('recBtn').textContent = 'Rozpocznij nagrywanie';
+      document.getElementById('recBtn').className = 'rec-btn start';
+      document.getElementById('recStatus').textContent = 'Gotowe';
+      document.getElementById('recStatus').style.color = 'var(--tx3)';
+      document.getElementById('recTimerDisplay').style.display = 'none';
+      document.getElementById('recName').disabled = false;
+      document.getElementById('recDuration').disabled = false;
+      document.getElementById('recName').value = '';
+      document.getElementById('recIndicator').classList.remove('active');
+    }
+
+    async function saveNotes() {
+      const notes = document.getElementById('recNotes').value.trim();
+      if (notes) {
+        await fetch('/api/v1/recording/notes', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes })
+        });
+      }
+    }
+
+    async function loadRecordings() {
+      const res = await fetch('/api/v1/recordings');
+      const data = await res.json();
+      const list = document.getElementById('recList');
+      const recs = data.recordings || [];
+      document.getElementById('recCount').textContent = recs.length;
+
+      if (recs.length === 0) {
+        list.innerHTML = '<div style="font-size:11px;color:var(--tx3);text-align:center;padding:10px">Brak nagrań</div>';
+        return;
+      }
+
+      list.innerHTML = recs.map(r => {
+        const date = new Date((r.start_time || 0) * 1000).toLocaleString('pl');
+        const dur = r.actual_duration_sec ? formatTime(r.actual_duration_sec) : '--:--';
+        const samples = r.sample_count || 0;
+        return `<div class="rec-item" onclick="viewRecording('${r.session_id}')">
+      <div class="rec-item-info">
+        <div class="rec-item-name">${escapeHtml(r.name || r.session_id)}</div>
+        <div class="rec-item-meta">${date} · ${dur} · ${samples} próbek</div>
+      </div>
+      <div class="rec-item-actions">
+        <button onclick="event.stopPropagation();downloadCsv('${r.session_id}')">CSV</button>
+        <button class="del" onclick="event.stopPropagation();deleteRecording('${r.session_id}')">✕</button>
+      </div>
+    </div>`;
+      }).join('');
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function downloadCsv(sessionId) {
+      window.open('/api/v1/recordings/' + sessionId + '/csv', '_blank');
+    }
+
+    async function deleteRecording(sessionId) {
+      if (!confirm('Usunąć nagranie?')) return;
+      await fetch('/api/v1/recordings/' + sessionId, { method: 'DELETE' });
+      loadRecordings();
+    }
+
+    async function viewRecording(sessionId) {
+      const res = await fetch('/api/v1/recordings/' + sessionId);
+      if (!res.ok) { alert('Nie znaleziono nagrania'); return; }
+      const data = await res.json();
+
+      document.getElementById('chartTitle').textContent = data.name || sessionId;
+      const notesEl = document.getElementById('chartNotes');
+      if (data.notes) {
+        notesEl.textContent = data.notes;
+        notesEl.style.display = 'block';
+      } else {
+        notesEl.style.display = 'none';
+      }
+
+      const container = document.getElementById('chartChannels');
+      container.innerHTML = '';
+
+      const samples = data.samples || {};
+      const timestamps = samples.ts || [];
+
+      // Show overlay FIRST so canvases get a real layout width
+      document.getElementById('chartOverlay').classList.add('active');
+
+      // Add session info summary
+      const infoHtml = `<div style="display:flex;gap:16px;font-size:12px;color:var(--tx2);margin-bottom:16px;flex-wrap:wrap">
+    <span>Czas: ${data.actual_duration_sec ? formatTime(data.actual_duration_sec) : '--:--'}</span>
+    <span>Próbki: ${data.sample_count || 0}</span>
+    <span>Kanały: ${(data.channels || []).join(', ')}</span>
+    <span>Źródło: ${data.source || '?'}</span>
+    <span>Częst.: ${data.sample_rate || 250} Hz</span>
+  </div>`;
+      container.innerHTML = infoHtml;
+
+      // Use requestAnimationFrame to ensure layout is computed
+      requestAnimationFrame(() => {
+        const dpr = window.devicePixelRatio || 2;
+        ['Fp1', 'Fp2', 'O1', 'O2'].forEach(ch => {
+          const values = samples[ch] || [];
+          if (values.length === 0) return;
+
+          const div = document.createElement('div');
+          div.className = 'chart-channel';
+          div.innerHTML = `<div class="ch-label">${ch} (${values.length} próbek)</div><canvas></canvas>`;
+          container.appendChild(div);
+
+          const canvas = div.querySelector('canvas');
+          const displayW = canvas.offsetWidth || 800;
+          const displayH = canvas.offsetHeight || 120;
+          canvas.width = displayW * dpr;
+          canvas.height = displayH * dpr;
+          const ctx = canvas.getContext('2d');
+          ctx.scale(dpr, dpr);
+
+          // Draw in CSS pixel coordinates
+          const w = displayW, h = displayH;
+          const minV = Math.min(...values);
+          const maxV = Math.max(...values);
+          const range = maxV - minV || 1;
+          const color = ch.startsWith('F') ? '#00e5a0' : '#3d9eff';
+
+          // Background fill
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.fillRect(0, 0, w, h);
+
+          // Grid lines
+          ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+          ctx.lineWidth = 1;
+          for (let i = 0; i <= 4; i++) {
+            const y = (i / 4) * h;
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+          }
+
+          // Build path points
+          const pad = 8;
+          const points = [];
+          for (let i = 0; i < values.length; i++) {
+            const x = (i / (values.length - 1)) * w;
+            const y = h - pad - ((values[i] - minV) / range) * (h - pad * 2);
+            points.push({ x, y });
+          }
+
+          // Filled area under curve
+          ctx.beginPath();
+          ctx.moveTo(points[0].x, h);
+          points.forEach(p => ctx.lineTo(p.x, p.y));
+          ctx.lineTo(points[points.length - 1].x, h);
+          ctx.closePath();
+          ctx.fillStyle = color.replace(')', ',0.08)').replace('rgb', 'rgba').replace('#', '');
+          // Hex to rgba fill
+          const r = parseInt(color.slice(1, 3), 16), g = parseInt(color.slice(3, 5), 16), b = parseInt(color.slice(5, 7), 16);
+          ctx.fillStyle = `rgba(${r},${g},${b},0.1)`;
+          ctx.fill();
+
+          // Signal line with glow
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 6;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // Y-axis labels
+          ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          ctx.font = '10px JetBrains Mono';
+          ctx.fillText(maxV.toFixed(1), 4, 12);
+          ctx.fillText(minV.toFixed(1), 4, h - 4);
+
+          // Duration label
+          if (timestamps.length >= 2) {
+            const durSec = (timestamps[timestamps.length - 1] - timestamps[0]).toFixed(1);
+            ctx.fillText(durSec + 's', w - 50, h - 4);
+          }
+        });
+      });
+    }
+
+    function closeChartOverlay() {
+      document.getElementById('chartOverlay').classList.remove('active');
+    }
+
+    // ─── Combo Kreator ────────────────────────────────────────────────
+    let kitRecordings = [];
+    let kitCurrentRec = null;
+    let kitAnalysis = null;
+    let kitConditions = {};
+
+    async function kitInit() {
+      try {
+        const res = await fetch('/api/v1/recordings');
+        const data = await res.json();
+        kitRecordings = data.recordings || [];
+        const sel = document.getElementById('kitRecSelect');
+        sel.innerHTML = '<option value="">— wybierz nagranie —</option>' +
+          kitRecordings.map(r => {
+            const dur = r.actual_duration_sec ? ` (${formatTime(r.actual_duration_sec)})` : '';
+            return `<option value="${r.session_id}">${escapeHtml(r.name || r.session_id)}${dur}</option>`;
+          }).join('');
+      } catch (e) {
+        console.error('kitInit error', e);
+      }
+      kitLoadCustomCombos();
+    }
+
+    function kitSelectRec() {
+      const id = document.getElementById('kitRecSelect').value;
+      if (!id) {
+        document.getElementById('kitSegmentPanel').style.display = 'none';
+        document.getElementById('kitAnalysisPanel').style.display = 'none';
+        kitCurrentRec = null;
+        return;
+      }
+      kitCurrentRec = kitRecordings.find(r => r.session_id === id) || null;
+      const dur = Math.floor(kitCurrentRec?.actual_duration_sec || 60);
+      const endInput = document.getElementById('kitSegEnd');
+      endInput.value = Math.min(30, dur);
+      endInput.max = dur;
+      document.getElementById('kitSegStart').max = dur;
+      document.getElementById('kitRecInfo').textContent =
+        `Czas trwania: ${formatTime(dur)} · ${kitCurrentRec?.sample_count || '?'} próbek`;
+      document.getElementById('kitSegmentPanel').style.display = 'block';
+      document.getElementById('kitAnalysisPanel').style.display = 'none';
+      document.getElementById('kitError').style.display = 'none';
+    }
+
+    async function kitAnalyze() {
+      const id = document.getElementById('kitRecSelect').value;
+      if (!id) return;
+      const start = parseFloat(document.getElementById('kitSegStart').value) || 0;
+      const end = parseFloat(document.getElementById('kitSegEnd').value) || -1;
+      if (end > 0 && end - start < 2) {
+        kitShowError('Fragment musi być dłuższy niż 2 sekundy.');
+        return;
+      }
+      const btn = document.getElementById('kitAnalyzeBtn');
+      btn.textContent = 'Analizuję…';
+      btn.disabled = true;
+      document.getElementById('kitError').style.display = 'none';
+      try {
+        const res = await fetch(`/api/v1/recordings/${id}/segment-analysis?start_sec=${start}&end_sec=${end}`);
+        if (!res.ok) {
+          const err = await res.json();
+          kitShowError(err.detail || 'Błąd analizy');
+          return;
+        }
+        kitAnalysis = await res.json();
+        kitConditions = {};
+        METRICS.forEach(m => {
+          const sugg = kitAnalysis.suggestions[m];
+          if (sugg) {
+            kitConditions[m] = { op: sugg[0], val: parseFloat(sugg.slice(1)), enabled: true };
+          } else {
+            const mean = kitAnalysis.stats[m]?.mean ?? 0.5;
+            kitConditions[m] = { op: '>', val: parseFloat(mean.toFixed(2)), enabled: false };
+          }
+        });
+        kitRenderAnalysis();
+        document.getElementById('kitAnalysisPanel').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('kitTimelineCanvas').width = 0; // force resize
+          kitDrawTimeline();
+        }, 50);
+      } catch (e) {
+        kitShowError('Błąd: ' + e.message);
+      } finally {
+        btn.textContent = 'Analizuj fragment →';
+        btn.disabled = false;
+      }
+    }
+
+    function kitShowError(msg) {
+      const el = document.getElementById('kitError');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function kitRenderAnalysis() {
+      if (!kitAnalysis) return;
+      const div = document.getElementById('kitConditions');
+      div.innerHTML = METRICS.map(m => {
+        const stat = kitAnalysis.stats[m] || {};
+        const cond = kitConditions[m];
+        const color = METRIC_COLORS[m] || 'var(--acc)';
+        const pct = Math.round((stat.mean || 0) * 100);
+        return `<div class="kit-cond-row" id="kitcrow-${m}" style="opacity:${cond.enabled ? '1' : '0.4'}">
+      <input type="checkbox" ${cond.enabled ? 'checked' : ''} onchange="kitToggleCond('${m}',this.checked)" style="accent-color:${color};flex-shrink:0;cursor:pointer">
+      <span class="kit-cond-name" style="color:${color}">${METRIC_NAMES[m]}</span>
+      <span class="kit-cond-mean">${pct}%</span>
+      <select class="kit-op-sel" id="kitop-${m}" onchange="kitUpdateCond('${m}')">
+        <option value=">" ${cond.op === '>' ? 'selected' : ''}>&gt;</option>
+        <option value="<" ${cond.op === '<' ? 'selected' : ''}>&lt;</option>
+      </select>
+      <input type="range" class="kit-thresh" id="kitthresh-${m}" min="0" max="1" step="0.05"
+        value="${cond.val}" oninput="kitUpdateCond('${m}')">
+      <span class="kit-val" id="kitval-${m}">${cond.val.toFixed(2)}</span>
+    </div>`;
+      }).join('');
+    }
+
+    function kitToggleCond(m, enabled) {
+      kitConditions[m].enabled = enabled;
+      const row = document.getElementById('kitcrow-' + m);
+      if (row) row.style.opacity = enabled ? '1' : '0.4';
+      kitDrawTimeline();
+    }
+
+    function kitUpdateCond(m) {
+      kitConditions[m].op = document.getElementById('kitop-' + m).value;
+      const raw = parseFloat(document.getElementById('kitthresh-' + m).value);
+      kitConditions[m].val = raw;
+      document.getElementById('kitval-' + m).textContent = raw.toFixed(2);
+    }
+
+    function kitDrawTimeline() {
+      if (!kitAnalysis?.series) return;
+      const canvas = document.getElementById('kitTimelineCanvas');
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.offsetWidth || 260;
+      const h = 72;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      ctx.fillStyle = '#0a0b0d';
+      ctx.fillRect(0, 0, w, h);
+      // Grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) {
+        const y = (i / 4) * h;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+      METRICS.forEach(m => {
+        const vals = kitAnalysis.series[m];
+        if (!vals || vals.length < 2) return;
+        const enabled = kitConditions[m]?.enabled;
+        ctx.globalAlpha = enabled ? 0.9 : 0.18;
+        ctx.strokeStyle = METRIC_COLORS[m] || '#fff';
+        ctx.lineWidth = enabled ? 1.5 : 1;
+        ctx.beginPath();
+        vals.forEach((v, i) => {
+          const x = (i / (vals.length - 1)) * w;
+          const y = h - 4 - v * (h - 8);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+      // Legend
+      let lx = 4;
+      METRICS.forEach(m => {
+        if (!kitConditions[m]?.enabled) return;
+        ctx.fillStyle = METRIC_COLORS[m];
+        ctx.font = '9px JetBrains Mono';
+        ctx.fillText(METRIC_NAMES[m], lx, h - 3);
+        lx += ctx.measureText(METRIC_NAMES[m]).width + 8;
+      });
+    }
+
+    async function kitSaveCombo() {
+      const rawName = document.getElementById('kitComboName').value.trim();
+      if (!rawName) { alert('Podaj nazwę combo'); return; }
+      if (!/^[a-zA-Z][a-zA-Z0-9_]{0,31}$/.test(rawName)) {
+        alert('Nazwa combo musi zaczynać się od litery i zawierać tylko a-z, 0-9, _ (max 32 znaki).');
+        return;
+      }
+      const requires = {};
+      METRICS.forEach(m => {
+        const cond = kitConditions[m];
+        if (cond?.enabled) requires[m] = cond.op + cond.val.toFixed(2);
+      });
+      if (Object.keys(requires).length === 0) {
+        alert('Zaznacz przynajmniej jeden warunek dla combo.');
+        return;
+      }
+      const sustain = parseFloat(document.getElementById('kitSustain').value) || 2.0;
+      const cooldown = parseFloat(document.getElementById('kitCooldown').value) || 8.0;
+      const body = {
+        combos: {
+          [rawName]: {
+            requires,
+            sustain_sec: +sustain.toFixed(1),
+            cooldown_sec: +cooldown.toFixed(0),
+            enabled: true,
+            custom: true,
+            source_recording: kitCurrentRec?.session_id || null,
+          }
+        }
+      };
+      const res = await fetch('/api/v1/users/default/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        document.getElementById('kitComboName').value = '';
+        kitLoadCustomCombos();
+        loadSettings();
+        alert(`✅ Combo "${rawName}" zostało zapisane!`);
+      } else {
+        alert('Błąd zapisu combo.');
+      }
+    }
+
+    async function kitLoadCustomCombos() {
+      try {
+        const res = await fetch('/api/v1/users/default/settings');
+        const data = await res.json();
+        const combos = data.combos || {};
+        const custom = Object.entries(combos).filter(([, v]) => v.custom);
+        const el = document.getElementById('kitComboList');
+        const cnt = document.getElementById('kitCustomCount');
+        if (cnt) cnt.textContent = custom.length || '';
+        if (custom.length === 0) {
+          el.innerHTML = '<div style="font-size:11px;color:var(--tx3);text-align:center;padding:8px">Brak własnych combo</div>';
+          return;
+        }
+        el.innerHTML = custom.map(([name, combo]) => {
+          const reqs = Object.entries(combo.requires || {})
+            .map(([m, c]) => `${METRIC_NAMES[m] || m}${c}`)
+            .join(', ');
+          return `<div class="kit-combo-item">
+        <div class="kit-combo-name">${escapeHtml(name)}<span class="kit-badge-custom">custom</span></div>
+        <button class="kit-combo-del" onclick="kitDeleteCombo('${escapeHtml(name)}')">✕</button>
+        <div class="kit-combo-reqs">${escapeHtml(reqs)}</div>
+        <div class="kit-combo-meta">sustain ${combo.sustain_sec}s · cooldown ${combo.cooldown_sec}s</div>
+      </div>`;
+        }).join('');
+      } catch (e) {
+        console.error('kitLoadCustomCombos error', e);
+      }
+    }
+
+    async function kitDeleteCombo(name) {
+      if (!confirm(`Usunąć combo "${name}"?`)) return;
+      const res = await fetch(`/api/v1/users/default/settings/combos/${encodeURIComponent(name)}`, { method: 'DELETE' });
+      if (res.ok) {
+        kitLoadCustomCombos();
+        loadSettings();
+      } else {
+        alert('Błąd usuwania combo.');
+      }
+    }
+
+    // ─── Init ─────────────────────────────────────────────────────────
+    connect();
+    loadSettings();
+    kitLoadCustomCombos();
+
+    // Fetch mental state model info
+    fetch('/api/v1/mental-state').then(r => r.json()).then(data => {
+      const badge = document.getElementById('mentalModelBadge');
+      badge.textContent = data.model_loaded ? 'ML model' : 'rule-based';
+      badge.style.color = data.model_loaded ? 'var(--acc)' : 'var(--tx3)';
+    }).catch(() => { });
+
+    // Fetch initial device status
+    fetch('/api/v1/device/status').then(r => r.json()).then(data => {
+      const dev = data.device;
+      const isConn = dev && dev.streaming !== undefined;
+      document.getElementById('devToggle').checked = isConn && dev.streaming;
+      document.getElementById('devBackend').textContent = data.backend || '—';
+      updateSourceDisplay(data.source || 'simulator');
+      if (isConn) {
+        document.getElementById('devConnStatus').textContent = 'POŁĄCZONE';
+        document.getElementById('devConnStatus').className = 'status-val on';
+        document.getElementById('devName').textContent = dev.name || '—';
+      }
+    }).catch(() => { });
+
+    // handle canvas resize
+    window.addEventListener('resize', () => {
+      CHANNELS.forEach(ch => {
+        const c = waveCanvases[ch];
+        c.width = c.offsetWidth * 2;
+      });
+    });
+  </script>
+</body>
+
+</html>

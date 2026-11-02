@@ -1,0 +1,16 @@
+# Sterownik i panel WWW
+bleak
+numpy
+scipy
+matplotlib
+pylsl
+fastapi
+uvicorn[standard]
+websockets
+wsproto
+# Analiza widmowa (parametryzacja widma 1/f i oscylacji)
+fooof
+# Zadania (okno pełnoekranowe, dźwięk)
+pygame-ce
+# Testy
+pytest

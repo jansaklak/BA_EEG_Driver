@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/jans/Programy/EEG-project/tasks/rest/analysis.py", line 21, in <module>
+    from tasks.common import load_behavior, load_eeg, resolve_session, save_json
+ImportError: cannot import name 'load_behavior' from 'tasks.common' (/Users/jans/Programy/EEG-project/tasks/common.py)

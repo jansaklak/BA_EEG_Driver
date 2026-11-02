@@ -1,0 +1,9 @@
+{
+  "code": "MUSIC",
+  "name": "Muzyka — cisza vs słuchanie",
+  "description": "Naprzemienne bloki: cisza / muzyka w słuchawkach (najlepiej dousznych). Ekran mówi, kiedy założyć i zdjąć słuchawki. Analiza: mapy topograficzne pasm, heatmapa zmian, spektrogram, asymetria alfa, oceny relaksu.",
+  "params": [
+    {"name": "blocks", "label": "Liczba bloków (parzysta)", "type": "int", "default": 6, "min": 2, "max": 20},
+    {"name": "block-seconds", "label": "Długość bloku (s)", "type": "float", "default": 60, "min": 20, "max": 600}
+  ]
+}

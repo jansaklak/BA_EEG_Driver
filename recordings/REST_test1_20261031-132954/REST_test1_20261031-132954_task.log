@@ -1,0 +1,5 @@
+usage: python -m tasks.rest.task [-h] --id ID [--target TARGET]
+                                 [--blocks BLOCKS]
+                                 [--block-seconds BLOCK_SECONDS]
+                                 [--beep-volume BEEP_VOLUME]
+python -m tasks.rest.task: error: unrecognized arguments: --session-dir /Users/jans/Programy/EEG-project/recordings/REST_test1_20261031-132954

@@ -1,0 +1,10 @@
+{
+  "code": "FLANKER",
+  "name": "Flanker (Eriksen)",
+  "description": "Strzałki zgodne/niezgodne, odpowiedź strzałką ← / →. Analiza: ERP correct vs incorrect + czasy reakcji.",
+  "params": [
+    {"name": "trials", "label": "Liczba prób", "type": "int", "default": 40, "min": 1, "max": 500},
+    {"name": "stimulus-ms", "label": "Czas bodźca (ms)", "type": "float", "default": 200, "min": 50, "max": 2000},
+    {"name": "response-window-ms", "label": "Okno odpowiedzi (ms)", "type": "float", "default": 1200, "min": 200, "max": 5000}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "session": "REST_test_20261031-133621",
+  "task_code": "REST",
+  "task_key": "rest",
+  "pseudonym": "test",
+  "created": "2026-10-31T13:36:21",
+  "params": {
+    "blocks": 2,
+    "block_seconds": 5.0,
+    "beep_volume": 0.35
+  },
+  "eeg_recorded": false,
+  "note": "Zadanie uruchomione poza panelem WWW – brak zapisu EEG."
+}

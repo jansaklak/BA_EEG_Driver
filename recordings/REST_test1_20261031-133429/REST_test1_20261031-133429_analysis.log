@@ -1,0 +1,16 @@
+Analizuję sesję: /Users/jans/Programy/EEG-project/recordings/REST_test1_20261031-133429
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/jans/Programy/EEG-project/tasks/rest/analysis.py", line 202, in <module>
+    main()
+    ~~~~^^
+  File "/Users/jans/Programy/EEG-project/tasks/rest/analysis.py", line 198, in main
+    print(json.dumps(analyze(paths), indent=2, ensure_ascii=False))
+                     ~~~~~~~^^^^^^^
+  File "/Users/jans/Programy/EEG-project/tasks/rest/analysis.py", line 125, in analyze
+    blocks = [row for row in load_behavior(paths) if row["state"] in ("open", "closed")]
+                             ~~~~~~~~~~~~~^^^^^^^
+  File "/Users/jans/Programy/EEG-project/tasks/common.py", line 283, in load_behavior
+    raise FileNotFoundError(f"Brak pliku danych zachowania: {paths.behavior}")
+FileNotFoundError: Brak pliku danych zachowania: /Users/jans/Programy/EEG-project/recordings/REST_test1_20261031-133429/REST_test1_20261031-133429_behavior.csv
