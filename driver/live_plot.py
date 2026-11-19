@@ -17,7 +17,7 @@ class HaloLivePlotter:
         self.driver = driver
         self.window_sec = window_sec
         self.channels = list(driver.channels)
-        self.n_points = int(window_sec * SAMPLE_RATE)
+        self.n_points = int(window_sec * driver.sample_rate)
         self.time_axis = np.linspace(-window_sec, 0, self.n_points)
 
         # Plot setup
@@ -61,8 +61,8 @@ class HaloLivePlotter:
         if frame % 40 == 0:
             for idx, ch in enumerate(self.channels):
                 buf = self.driver.dsp.filtered_buffers.get(ch, np.array([]))
-                if len(buf) > SAMPLE_RATE:
-                    p2p = np.ptp(buf[-SAMPLE_RATE:])
+                if len(buf) > self.driver.sample_rate:
+                    p2p = np.ptp(buf[-self.driver.sample_rate:])
                     limit = max(40.0, min(250.0, p2p * 0.8))
                     self.axes[idx].set_ylim(-limit, limit)
 
@@ -73,8 +73,8 @@ class HaloLivePlotter:
         plt.show()
 
 
-async def run_live_plot(target: str = None):
-    driver = HaloDriver(enable_dsp=True)
+async def run_live_plot(target: str = None, sample_rate: int = SAMPLE_RATE):
+    driver = HaloDriver(enable_dsp=True, sample_rate=sample_rate)
     print("Łączenie z BrainAccess HALO...")
     await driver.connect(target=target)
     await driver.start_stream()

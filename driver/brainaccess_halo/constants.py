@@ -36,7 +36,10 @@ CHR_STREAM_STATUS  = "e7945b26-141c-4459-8090-33b8bc85cee8"  # notify: stream st
 # LSB = (2 * VREF) / (Gain * 2^24) = 9.0 / (8 * 16777216) ≈ 0.0671 µV/count.
 EEG_SCALE_UV: float = 0.0671
 
-SAMPLE_RATE = 250               # Native sample rate in Hz
+SAMPLE_RATE = 250               # Default sample rate in Hz
+# BrainAccess StreamRate wire values (250 Hz = 6, 500 Hz = 5).
+SAMPLE_RATE_CODES = {250: 0x06, 500: 0x05}
+SUPPORTED_SAMPLE_RATES = tuple(SAMPLE_RATE_CODES)
 
 # Packet Layout (common across all models)
 RAW_CHANNELS_PER_SAMPLE = 6    # legacy HALO record format

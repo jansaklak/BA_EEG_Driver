@@ -119,14 +119,14 @@ class SessionEEGWriter:
     strumieniu LSL. Dzięki temu czasy EEG i triggerów są w tej samej skali.
     """
 
-    def __init__(self, path: Path, channels: List[str]):
+    def __init__(self, path: Path, channels: List[str], sample_rate: int = SAMPLE_RATE):
         self.path = path
         self.channels = list(channels)
         self.timestamps: List[float] = []
         self._file = path.open("w", newline="", encoding="utf-8")
         self._writer = csv.writer(self._file)
         self._writer.writerow(["lsl_time", *self.channels])
-        self._step = 1.0 / SAMPLE_RATE
+        self._step = 1.0 / sample_rate
         self._last_flush = time.monotonic()
 
     def on_samples(self, samples: List[EEGSample]) -> None:
@@ -156,6 +156,7 @@ def merge_triggers(paths: SessionPaths, timestamps: List[float]) -> Dict[str, An
     Trigger trafia do pierwszej próbki o czasie ≥ czas triggera.
     """
     events: List[Dict[str, Any]] = []
+    sample_rate = float(paths.read_meta().get("sample_rate_hz", SAMPLE_RATE))
     if paths.events.exists():
         with paths.events.open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
@@ -165,7 +166,7 @@ def merge_triggers(paths: SessionPaths, timestamps: List[float]) -> Dict[str, An
     outside = []
     for event in events:
         index = bisect_left(timestamps, event["lsl_time"])
-        if not timestamps or index >= len(timestamps) or event["lsl_time"] < timestamps[0] - 1.0 / SAMPLE_RATE:
+        if not timestamps or index >= len(timestamps) or event["lsl_time"] < timestamps[0] - 1.0 / sample_rate:
             event["sample_index"] = ""
             event["offset_ms"] = ""
             outside.append(event["marker"])
@@ -250,7 +251,7 @@ class TaskSession:
             created=datetime.now().isoformat(timespec="seconds"),
             params=self.params,
             eeg_recorded=True,
-            sample_rate_hz=SAMPLE_RATE,
+            sample_rate_hz=self.driver.sample_rate,
             channels=channels,
             unit="uV",
             reference=self.reference,
@@ -270,7 +271,7 @@ class TaskSession:
         )
 
         # 1. Zapis EEG startuje PRZED zadaniem, żeby mieć sygnał przed pierwszym bodźcem.
-        self.writer = SessionEEGWriter(self.paths.eeg_partial, channels)
+        self.writer = SessionEEGWriter(self.paths.eeg_partial, channels, sample_rate=self.driver.sample_rate)
         self.driver.add_callback(self.writer.on_samples)
 
         # 2. Proces zadania – ten sam interpreter Pythona, katalog główny projektu.

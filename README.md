@@ -125,8 +125,8 @@ The headset transmits data through dedicated GATT services:
 
 - **GATT Control Service:** `ace20bb6-5d39-45de-9f21-b101acf45b9b`
 - **Hardware configuration:** `3467e3a2-4511-ae66-7515-b26fce099337`
-  - MINI: PGA gain = 8, 8 active channels, 250 Hz
-    (`0x00, 8x 0x04, 0xFF, 0x06`)
+  - MINI: PGA gain = 8, 8 active channels, select 250 or 500 Hz before connecting
+    (`0x00, 8x 0x04, 0xFF, rate`; rate = `0x06` for 250 Hz or `0x05` for 500 Hz)
 - **EEG notification stream:** `a12f7c4b-9e8d-6a53-1e0f-c274815b36d7`
 - **START/STOP command:** `49beba02-5f6b-4ca2-b3c9-2e6b71aa9392` (`0x01` = start, `0x00` = stop)
 - **MINI data format:**

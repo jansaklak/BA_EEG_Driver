@@ -52,6 +52,7 @@ recorder: Optional[HaloRecorder] = None
 active_websockets: Set[WebSocket] = set()
 live_sample_buffer = deque(maxlen=2000)
 live_sample_sequence = 0
+default_sample_rate = SAMPLE_RATE
 
 # Current active montage for MINI (persisted across sessions)
 current_montage: List[str] = list(DEFAULT_MINI_MONTAGE)
@@ -820,6 +821,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           <span>Status urządzenia</span>
           <span id="txtDeviceName" style="font-size:0.75rem; color:var(--text-dim); font-family:'JetBrains Mono'">--</span>
         </div>
+        <label style="display:block; margin-bottom:0.8rem; font-size:0.8rem; color:var(--text-muted)">
+          Próbkowanie (wybierz przed połączeniem)
+          <select id="sampleRate" data-default-rate="__DEFAULT_SAMPLE_RATE__" style="margin-left:0.4rem" onchange="localStorage.setItem('ba_sample_rate', this.value)">
+            <option value="250">250 Hz</option>
+            <option value="500">500 Hz</option>
+          </select>
+        </label>
         <div class="stat-grid">
           <div class="stat-box">
             <div class="stat-label">Bateria</div>
@@ -996,7 +1004,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       localStorage.setItem('ba_montage', JSON.stringify(ACTIVE_CHANNELS));
     }
 
-    const BUFFER_LEN = 750; // 3 seconds at 250 Hz
+    let BUFFER_LEN = 750; // 3 seconds at the selected sample rate
+    const sampleRateSelect = document.getElementById('sampleRate');
+    const savedSampleRate = Number(localStorage.getItem('ba_sample_rate')) || Number(sampleRateSelect.dataset.defaultRate);
+    sampleRateSelect.value = [250, 500].includes(savedSampleRate) ? savedSampleRate : 250;
     let eegBuffers = {};
 
     function initBuffers(channels) {
@@ -1389,11 +1400,23 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       const btnConnect = document.getElementById('btnConnect');
       const modelBadge = document.getElementById('modelBadge');
       const txtDeviceName = document.getElementById('txtDeviceName');
+      sampleRateSelect.disabled = !!data.connected;
+      if (data.connected && data.sample_rate) {
+        sampleRateSelect.value = data.sample_rate;
+        BUFFER_LEN = 3 * data.sample_rate;
+      }
 
       if (data.connected) {
         statusDot.className = 'status-dot connected';
         const device = data.device || 'BrainAccess';
         statusText.innerText = 'Połączono (' + device + ')';
+        if (data.stream_stalled) {
+          statusDot.className = 'status-dot';
+          statusDot.style.background = 'var(--amber)';
+          statusText.innerText = 'Brak nowych próbek EEG — sprawdź czepek lub połącz ponownie';
+        } else {
+          statusDot.style.background = '';
+        }
         btnConnect.innerText = 'Rozłącz';
         btnConnect.className = 'btn-danger';
         txtDeviceName.innerText = device;
@@ -1409,6 +1432,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       } else {
         if (!statusDot.classList.contains('scanning')) {
           statusDot.className = 'status-dot';
+          statusDot.style.background = '';
           statusText.innerText = 'Rozłączony';
           btnConnect.innerText = 'Połącz z czepkiem';
           btnConnect.className = 'btn-primary';
@@ -1699,7 +1723,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         const response = await fetch('/api/connect', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(targetAddress ? { target: targetAddress, montage: ACTIVE_CHANNELS } : { montage: ACTIVE_CHANNELS })
+          body: JSON.stringify({ target: targetAddress, montage: ACTIVE_CHANNELS, sample_rate: Number(sampleRateSelect.value) })
         });
         const result = await response.json();
         if (result.status === 'connected' || result.status === 'already_connected') {
@@ -2018,7 +2042,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
 @app.get("/", response_class=HTMLResponse)
 async def get_dashboard():
-    return DASHBOARD_HTML
+    return DASHBOARD_HTML.replace("__DEFAULT_SAMPLE_RATE__", str(default_sample_rate))
 
 
 @app.get("/api/status")
@@ -2034,6 +2058,10 @@ async def api_status():
             "battery": driver.battery_level,
             "recording": recorder is not None,
             "samples": driver.sample_count,
+            "sample_rate": driver.sample_rate,
+            "streaming": driver.is_streaming,
+            "stream_stalled": driver.stream_stalled,
+            "last_sample_age": driver.last_sample_age,
         }
     return {"connected": False}
 
@@ -2108,28 +2136,35 @@ async def api_scan(timeout: float = 4.0):
 async def api_connect(payload: Optional[dict] = None):
     global driver, current_montage, gaze_analyzer
     target = None
+    sample_rate = default_sample_rate
     if payload and isinstance(payload, dict):
         target = payload.get("target")
+        sample_rate = payload.get("sample_rate", default_sample_rate)
         if payload.get("montage"):
             current_montage = [str(c).strip() for c in payload["montage"]]
 
+    if type(sample_rate) is not int or sample_rate not in (250, 500):
+        return {"status": "error", "message": "Wybierz częstotliwość próbkowania 250 lub 500 Hz."}
     try:
         if not driver:
-            driver = HaloDriver(enable_dsp=True)
+            driver = HaloDriver(enable_dsp=True, sample_rate=sample_rate)
         elif driver.is_connected:
+            if driver.sample_rate != sample_rate:
+                return {"status": "error", "message": "Rozłącz czepek przed zmianą częstotliwości próbkowania."}
             return {
                 "status": "already_connected",
                 "device": driver.device_name,
                 "model": driver.profile.model_name,
                 "channels": driver.channels,
                 "battery": driver.battery_level,
+                "sample_rate": driver.sample_rate,
             }
         else:
             try:
                 await driver.disconnect()
             except Exception:
                 pass
-            driver = HaloDriver(enable_dsp=True)
+            driver = HaloDriver(enable_dsp=True, sample_rate=sample_rate)
 
         logger.info("Connecting to target: %s", target or "auto-discovery")
         await driver.connect(target=target, timeout=10.0)
@@ -2138,7 +2173,7 @@ async def api_connect(payload: Optional[dict] = None):
         if driver.profile.model_name == "MINI" and current_montage:
             driver.set_channel_mapping(current_montage)
 
-        gaze_analyzer = GazeAnalyzer(driver.channels, sample_rate=SAMPLE_RATE)
+        gaze_analyzer = GazeAnalyzer(driver.channels, sample_rate=driver.sample_rate)
         driver.add_callback(gaze_analyzer.push_samples)
         await driver.start_stream()
         return {
@@ -2147,6 +2182,7 @@ async def api_connect(payload: Optional[dict] = None):
             "model": driver.profile.model_name,
             "channels": driver.channels,
             "battery": driver.battery_level,
+            "sample_rate": driver.sample_rate,
         }
     except Exception as e:
         logger.exception("Connect failed")
@@ -2328,6 +2364,10 @@ async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
     active_websockets.add(ws)
     client_sequence = live_sample_sequence
+    rate_driver = None
+    rate_time = time.monotonic()
+    rate_samples = 0
+    measured_hz = 0.0
     try:
         while True:
             await asyncio.sleep(0.1)  # 10 Hz telemetry push
@@ -2351,7 +2391,7 @@ async def websocket_endpoint(ws: WebSocket):
                 psd_frequencies, psd_powers = [], []
 
             try:
-                fooof_data = dsp.get_fooof(max_frequency=45.0) if dsp else {
+                fooof_data = dsp.get_fooof_background(max_frequency=45.0) if dsp else {
                     "frequencies": [],
                     "psd": [],
                     "psd_flat": [],
@@ -2392,8 +2432,20 @@ async def websocket_endpoint(ws: WebSocket):
                 client_sequence = live_sample_buffer[-1][0]
 
             # Keep each client responsive even if it was briefly suspended.
-            if len(chunk) > 150:
-                chunk = chunk[-150:]
+            max_chunk = int(driver.sample_rate * 0.6)
+            if len(chunk) > max_chunk:
+                chunk = chunk[-max_chunk:]
+
+            now = time.monotonic()
+            if rate_driver is not driver or driver.sample_count < rate_samples:
+                rate_driver = driver
+                rate_time = now
+                rate_samples = driver.sample_count
+                measured_hz = 0.0
+            elif now - rate_time >= 1.0:
+                measured_hz = (driver.sample_count - rate_samples) / (now - rate_time)
+                rate_time = now
+                rate_samples = driver.sample_count
 
             payload = {
                 "connected": driver.is_connected,
@@ -2401,7 +2453,11 @@ async def websocket_endpoint(ws: WebSocket):
                 "model": driver.profile.model_name,
                 "channels": channels,
                 "battery": driver.battery_level,
-                "hz": SAMPLE_RATE,
+                "hz": 0.0 if driver.stream_stalled else measured_hz,
+                "sample_rate": driver.sample_rate,
+                "streaming": driver.is_streaming,
+                "stream_stalled": driver.stream_stalled,
+                "last_sample_age": driver.last_sample_age,
                 "samples_total": driver.sample_count,
                 "dropped": driver.decoder.dropped_packets,
                 "gaze": gaze,
@@ -2422,7 +2478,9 @@ async def websocket_endpoint(ws: WebSocket):
         active_websockets.discard(ws)
 
 
-def run_web(port: int = 8420):
+def run_web(port: int = 8420, sample_rate: int = SAMPLE_RATE):
+    global default_sample_rate
+    default_sample_rate = sample_rate
     print(f"\nBrainAccess EEG Web Dashboard uruchomiony pod adresem: http://localhost:{port}")
     webbrowser.open(f"http://localhost:{port}")
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")

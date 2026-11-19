@@ -33,6 +33,7 @@ from .constants import (
     PROFILE_HALO,
     PROFILE_MINI,
     SAMPLE_RATE,
+    SAMPLE_RATE_CODES,
     SVC_CONTROL,
     detect_profile,
 )
@@ -48,7 +49,10 @@ class HaloDriver:
     Auto-detects device model (HALO / MINI) and configures channel mapping.
     """
 
-    def __init__(self, enable_dsp: bool = True, profile: Optional[DeviceProfile] = None):
+    def __init__(self, enable_dsp: bool = True, profile: Optional[DeviceProfile] = None, sample_rate: int = SAMPLE_RATE):
+        if sample_rate not in SAMPLE_RATE_CODES:
+            raise ValueError("Częstotliwość próbkowania musi wynosić 250 lub 500 Hz.")
+        self.sample_rate = int(sample_rate)
         self._client: Optional[BleakClient] = None
         self._device: Optional[BLEDevice] = None
         self._connected: bool = False
@@ -70,11 +74,14 @@ class HaloDriver:
         # Data handling — decoder uses profile's channel mapping
         self.decoder = EEGPacketDecoder(profile=self.profile)
         self._enable_dsp = enable_dsp
-        self.dsp = HaloDSP(channels=self.profile.channels) if enable_dsp else None
+        self.dsp = HaloDSP(channels=self.profile.channels, sample_rate=self.sample_rate) if enable_dsp else None
         self.callbacks: List[Callable[[List[EEGSample]], None]] = []
 
         # Thread-safe sample queue for synchronous consumers
-        self._queue: asyncio.Queue = asyncio.Queue()
+        # Preview consumers can disappear (closed/background browser tab).
+        # Keep only recent preview data; recording callbacks receive every batch.
+        self._queue: asyncio.Queue = asyncio.Queue(maxsize=self.sample_rate * 5)
+        self.preview_dropped_samples = 0
         self._lock = threading.Lock()
 
         # Internal loop management for sync wrappers
@@ -85,6 +92,8 @@ class HaloDriver:
         self.packet_count: int = 0
         self.sample_count: int = 0
         self.start_time: Optional[float] = None
+        self._stream_started_at: Optional[float] = None
+        self._last_sample_at: Optional[float] = None
 
     def _apply_profile(self, profile: DeviceProfile):
         """Apply a device profile: update decoder, DSP, and channel config."""
@@ -241,7 +250,9 @@ class HaloDriver:
         self.device_address = selected_device.address
         logger.info("Connecting to device: %s (%s)...", self.device_name, self.device_address)
 
-        self._client = BleakClient(selected_device, timeout=timeout)
+        self._client = BleakClient(
+            selected_device, timeout=timeout, disconnected_callback=self._on_disconnect
+        )
         await self._client.connect()
 
         if not self._client.is_connected:
@@ -320,12 +331,18 @@ class HaloDriver:
         self.packet_count = 0
         self.sample_count = 0
         self.start_time = time.time()
+        self._stream_started_at = time.monotonic()
+        self._last_sample_at = None
+        self.preview_dropped_samples = 0
+        while not self._queue.empty():
+            self._queue.get_nowait()
 
         # 1. Send hardware configuration from device profile
-        cfg = self.profile.stream_config
+        cfg = self.profile.stream_config[:-1] + bytes([SAMPLE_RATE_CODES[self.sample_rate]])
         logger.info(
-            "Sending STREAM_CONFIG for %s (PGA=8, Rate=250Hz, %dch): %s",
+            "Sending STREAM_CONFIG for %s (PGA=8, Rate=%dHz, %dch): %s",
             self.profile.model_name,
+            self.sample_rate,
             self.profile.channel_count,
             cfg.hex(),
         )
@@ -343,7 +360,7 @@ class HaloDriver:
         logger.info(
             "BrainAccess %s EEG stream running at %d Hz (%d channels: %s).",
             self.profile.model_name,
-            SAMPLE_RATE,
+            self.sample_rate,
             self.profile.channel_count,
             ", ".join(self.profile.channels),
         )
@@ -379,6 +396,7 @@ class HaloDriver:
 
         self.packet_count += 1
         self.sample_count += len(samples)
+        self._last_sample_at = time.monotonic()
 
         ch_names = self.profile.channels
 
@@ -410,18 +428,19 @@ class HaloDriver:
 
         # Thread-safe queue put
         for item in queue_items:
-            try:
-                self._queue.put_nowait(item)
-            except asyncio.QueueFull:
-                pass
+            if self._queue.full():
+                self._queue.get_nowait()
+                self.preview_dropped_samples += 1
+            self._queue.put_nowait(item)
 
         # Trigger user callbacks
         with self._lock:
-            for cb in self.callbacks:
-                try:
-                    cb(samples)
-                except Exception as e:
-                    logger.error("Error in user EEG callback: %s", e)
+            callbacks = list(self.callbacks)
+        for cb in callbacks:
+            try:
+                cb(samples)
+            except Exception:
+                logger.exception("Error in user EEG callback")
 
     def add_callback(self, cb: Callable[[List[EEGSample]], None]):
         """Add a callback for receiving decoded sample batches."""
@@ -448,11 +467,21 @@ class HaloDriver:
     # -------------------------------------------------------------------------
     # Disconnect & Teardown
     # -------------------------------------------------------------------------
+    def _on_disconnect(self, client: BleakClient):
+        if client is not self._client:
+            return
+        unexpected = self._connected
+        self._connected = False
+        self._streaming = False
+        if unexpected:
+            logger.warning("BLE connection lost; EEG reception stopped.")
+
     async def disconnect(self):
         """Safely stop streaming and disconnect from the device."""
         if self._streaming:
             await self.stop_stream()
 
+        self._connected = False
         if self._client:
             try:
                 await self._client.disconnect()
@@ -469,7 +498,19 @@ class HaloDriver:
 
     @property
     def is_streaming(self) -> bool:
-        return self._streaming
+        return self._streaming and self.is_connected
+
+    @property
+    def last_sample_age(self) -> Optional[float]:
+        """Seconds since the most recent decoded batch (monotonic clock)."""
+        if self._last_sample_at is None:
+            return None
+        return max(0.0, time.monotonic() - self._last_sample_at)
+
+    @property
+    def stream_stalled(self) -> bool:
+        since = self._last_sample_at if self._last_sample_at is not None else self._stream_started_at
+        return self.is_streaming and since is not None and time.monotonic() - since >= 3.0
 
     async def read_battery(self) -> Optional[int]:
         """Read fresh battery level."""
@@ -494,10 +535,13 @@ class HaloDriver:
             "firmware": self.firmware_revision,
             "hardware": self.hardware_revision,
             "serial": self.serial_number,
-            "sample_rate": SAMPLE_RATE,
+            "sample_rate": self.sample_rate,
             "channels": list(self.profile.channels),
             "channel_count": self.profile.channel_count,
             "electrode_count": self.profile.electrode_count,
             "total_samples": self.sample_count,
             "dropped_packets": self.decoder.dropped_packets,
+            "stream_stalled": self.stream_stalled,
+            "last_sample_age": self.last_sample_age,
+            "preview_dropped_samples": self.preview_dropped_samples,
         }

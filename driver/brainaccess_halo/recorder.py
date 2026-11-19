@@ -77,7 +77,7 @@ class HaloRecorder:
         # Save metadata
         meta = {
             "session_start": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "sample_rate_hz": SAMPLE_RATE,
+            "sample_rate_hz": (device_metadata or {}).get("sample_rate", SAMPLE_RATE),
             "channels": ch_list,
             "device_info": device_metadata or {},
         }

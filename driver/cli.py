@@ -145,7 +145,7 @@ async def cmd_info(args):
 
 async def cmd_stream(args):
     """Connect and stream live EEG to terminal with stats."""
-    driver = HaloDriver(enable_dsp=True)
+    driver = HaloDriver(enable_dsp=True, sample_rate=getattr(args, "sample_rate", SAMPLE_RATE))
     recorder = None
 
     is_record = getattr(args, "record", False)
@@ -171,7 +171,7 @@ async def cmd_stream(args):
 
     await driver.start_stream()
     print(
-        f"🟢 Strumień EEG aktywny (250 Hz, {driver.profile.channel_count} kanałów: "
+        f"🟢 Strumień EEG aktywny ({driver.sample_rate} Hz, {driver.profile.channel_count} kanałów: "
         f"{', '.join(driver.channels)})."
     )
     print("Naciśnij Ctrl+C, aby zatrzymać.\n")
@@ -209,7 +209,7 @@ async def cmd_stream(args):
                 print("=" * 65)
                 print(f" 🧠 BRAINACCESS EEG — TELEMETRIA NA ŻYWO")
                 print("=" * 65)
-                print(f" Status: Połączono | Model: {driver.profile.model_name} | Bateria: {bat if bat is not None else 'N/A'}% | Próbkowanie: {hz:.1f} Hz (cel: 250 Hz)")
+                print(f" Status: Połączono | Model: {driver.profile.model_name} | Bateria: {bat if bat is not None else 'N/A'}% | Próbkowanie: {hz:.1f} Hz (cel: {driver.sample_rate} Hz)")
                 print(f" Łącznie próbek: {driver.sample_count} | Utracone pakiety: {driver.decoder.dropped_packets} | Mrugnięcia: {blinks}")
                 print("-" * 65)
                 print(" Jakość kontaktu elektrod i poziom szumów:")
@@ -259,7 +259,7 @@ async def cmd_stream(args):
 
 async def cmd_check(args):
     """Run an automated diagnostic check on the live signal."""
-    driver = HaloDriver(enable_dsp=True)
+    driver = HaloDriver(enable_dsp=True, sample_rate=getattr(args, "sample_rate", SAMPLE_RATE))
     target = getattr(args, "target", None)
     duration = getattr(args, "seconds", 6.0)
 
@@ -302,12 +302,12 @@ async def cmd_check(args):
     first_ch = active_channels[0] if active_channels else None
     n_samples = len(raw_data[first_ch]) if first_ch else 0
     real_hz = n_samples / duration if duration > 0 else 0
-    hz_ok = "✅ OK" if 230 <= real_hz <= 265 else "⚠️ Odchyłka"
+    hz_ok = "✅ OK" if 0.92 * driver.sample_rate <= real_hz <= 1.06 * driver.sample_rate else "⚠️ Odchyłka"
     drop_ok = "✅ 0%" if driver.decoder.dropped_packets == 0 else "⚠️ Wystąpiły straty"
 
     print(f" Urządzenie                : {summary['device_name']} ({summary['model']})")
     print(f" Kanały                    : {', '.join(active_channels)} ({len(active_channels)})")
-    print(f" Częstotliwość próbkowania : {real_hz:.1f} Hz (wzorcowa: 250.0 Hz) {hz_ok}")
+    print(f" Częstotliwość próbkowania : {real_hz:.1f} Hz (wzorcowa: {driver.sample_rate} Hz) {hz_ok}")
     print(f" Utracone pakiety BLE      : {driver.decoder.dropped_packets} {drop_ok}")
     print("-" * 65)
     print(" OCENA KONTAKTU ELEKTROD (Amplituda i szum):")
@@ -396,6 +396,10 @@ def main():
     p_web = subparsers.add_parser("web", help="Panel WWW: podgląd EEG, uruchamianie zadań z zapisem i analizy")
     p_web.add_argument("--port", type=int, default=8420, help="Port serwera (domyślnie 8420)")
 
+    for command_parser in (p_chk, p_mon, p_stream, p_plot, p_lsl, p_web):
+        command_parser.add_argument("--sample-rate", type=int, choices=(250, 500), default=SAMPLE_RATE,
+                                    help="Częstotliwość próbkowania EEG w Hz (domyślnie 250)")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -414,11 +418,11 @@ def main():
         asyncio.run(cmd_stream(args))
     elif args.command == "plot":
         from .live_plot import run_live_plot
-        asyncio.run(run_live_plot(args.target))
+        asyncio.run(run_live_plot(args.target, sample_rate=args.sample_rate))
     elif args.command == "lsl":
         async def run_lsl():
             from .brainaccess_halo import HaloDriver, HaloLSLStreamer
-            driver = HaloDriver(enable_dsp=False)
+            driver = HaloDriver(enable_dsp=False, sample_rate=args.sample_rate)
             print(f"Łączenie z czepkiem BrainAccess (cel={args.target or 'auto'})...")
             await driver.connect(target=args.target)
             lsl = HaloLSLStreamer(driver, stream_name=args.name)
@@ -437,7 +441,7 @@ def main():
         asyncio.run(run_lsl())
     elif args.command == "web":
         from .web_dashboard import run_web
-        run_web(args.port)
+        run_web(args.port, sample_rate=args.sample_rate)
 
 
 

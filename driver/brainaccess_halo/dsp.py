@@ -4,8 +4,12 @@ Provides real-time DC removal, 50 Hz notch filtering, band power calculation, an
 Universal: channel list is configurable — supports HALO (4ch) and MINI (8ch).
 """
 
+import asyncio
+import copy
+import logging
 import os
 import time
+from functools import partial
 from typing import Any, Dict, List, Optional, Tuple
 import warnings
 import numpy as np
@@ -13,6 +17,8 @@ from scipy.ndimage import median_filter
 from scipy.signal import butter, find_peaks, iirnotch, sosfilt, sosfilt_zi, tf2sos, welch
 
 from .constants import BANDS, CHANNELS, SAMPLE_RATE
+
+logger = logging.getLogger("BrainAccessEEG.DSP")
 
 # Lazy / safe import of FOOOF
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="fooof.*")
@@ -39,11 +45,12 @@ class HaloDSP:
         lowpass_hz: float = 45.0,
         notch_enabled: bool = True,
         channels: Optional[List[str]] = None,
+        sample_rate: int = SAMPLE_RATE,
     ):
         self.channels = list(channels) if channels else list(CHANNELS)
-        self.sample_rate = SAMPLE_RATE
-        self.buffer_size = int(buffer_seconds * SAMPLE_RATE)
-        self.window_size = int(window_seconds * SAMPLE_RATE)
+        self.sample_rate = sample_rate
+        self.buffer_size = int(buffer_seconds * self.sample_rate)
+        self.window_size = int(window_seconds * self.sample_rate)
         self.filters_enabled = filters_enabled
         self.highpass_hz = highpass_hz
         self.lowpass_hz = lowpass_hz
@@ -56,6 +63,9 @@ class HaloDSP:
         # Cache for FOOOF parameterization to avoid CPU overload during 10 Hz websocket pushes
         self._fooof_cache: Optional[Dict[str, Any]] = None
         self._fooof_last_time: float = 0.0
+        self._fooof_future: Optional[asyncio.Future] = None
+        self._fooof_generation = 0
+        self._fooof_job_generation = 0
 
         self._build_filters()
 
@@ -65,26 +75,27 @@ class HaloDSP:
         self.raw_buffers = {ch: np.zeros(0, dtype=np.float64) for ch in self.channels}
         self.filtered_buffers = {ch: np.zeros(0, dtype=np.float64) for ch in self.channels}
         self._build_filters()
+        self.reset()
 
     def _build_filters(self):
         """Build preview filters from the current settings."""
         # DC / slow drift removal: High-pass exponential moving average filter
         # tau = 0.5 s gives cutoff ≈ 0.3 Hz
         tau = 1.0 / (2.0 * np.pi * max(self.highpass_hz, 0.01))
-        self._hp_alpha: float = float(np.exp(-1.0 / (SAMPLE_RATE * tau)))
+        self._hp_alpha: float = float(np.exp(-1.0 / (self.sample_rate * tau)))
         self._hp_state: Dict[str, Optional[float]] = {ch: None for ch in self.channels}
 
         # 50 Hz Notch filter (EU mains)
-        b_notch, a_notch = iirnotch(50.0, Q=30.0, fs=SAMPLE_RATE)
+        b_notch, a_notch = iirnotch(50.0, Q=30.0, fs=self.sample_rate)
         self._notch_sos = tf2sos(b_notch, a_notch)
         self._notch_zi: Dict[str, Optional[np.ndarray]] = {ch: None for ch in self.channels}
 
         # 0.5 - 45 Hz Bandpass filter
         self._bandpass_sos = butter(
             4,
-            [max(self.highpass_hz, 0.01), min(self.lowpass_hz, SAMPLE_RATE / 2 - 1)],
+            [max(self.highpass_hz, 0.01), min(self.lowpass_hz, self.sample_rate / 2 - 1)],
             btype="bandpass",
-            fs=SAMPLE_RATE,
+            fs=self.sample_rate,
             output="sos",
         )
         self._bandpass_zi: Dict[str, Optional[np.ndarray]] = {ch: None for ch in self.channels}
@@ -101,7 +112,7 @@ class HaloDSP:
         notch_enabled: bool,
     ):
         """Update preview filtering and reset state to avoid mixed filter history."""
-        if not 0.0 <= highpass_hz < lowpass_hz < SAMPLE_RATE / 2:
+        if not 0.0 <= highpass_hz < lowpass_hz < self.sample_rate / 2:
             raise ValueError("Filter limits must satisfy 0 <= highpass < lowpass < Nyquist.")
         self.filters_enabled = enabled
         self.highpass_hz = highpass_hz
@@ -121,6 +132,7 @@ class HaloDSP:
             self._bandpass_zi[ch] = None
         self._fooof_cache = None
         self._fooof_last_time = 0.0
+        self._fooof_generation += 1
 
     def push_sample(self, ch_values: Dict[str, float]):
         """Push a single multichannel sample into DSP pipeline."""
@@ -208,8 +220,8 @@ class HaloDSP:
                 continue
 
             window = buf[-self.window_size:]
-            nperseg = min(128, len(window))
-            freqs, psd = welch(window, fs=SAMPLE_RATE, nperseg=nperseg)
+            nperseg = min(round(128 * self.sample_rate / SAMPLE_RATE), len(window))
+            freqs, psd = welch(window, fs=self.sample_rate, nperseg=nperseg)
 
             ch_bands = {}
             for band_name, (f_low, f_high) in BANDS.items():
@@ -271,6 +283,55 @@ class HaloDSP:
 
         median_psd = np.median(np.asarray(spectra), axis=0)
         return frequencies.tolist(), np.maximum(median_psd, 0.0).tolist()
+
+    def get_fooof_background(self, cache_ttl_seconds: float = 1.0, **settings) -> Dict[str, Any]:
+        """Return the latest fit while one worker fits a private buffer snapshot.
+
+        Call from the BLE/dashboard event loop. All browser clients share one
+        pending fit, and reception and telemetry keep running while it works.
+        """
+        now = time.monotonic()
+        if self._fooof_future is not None and self._fooof_future.done():
+            try:
+                result = self._fooof_future.result()
+            except Exception:
+                logger.exception("Background FOOOF calculation failed")
+                if self._fooof_job_generation == self._fooof_generation:
+                    self._fooof_cache = {
+                        "frequencies": [], "psd": [], "psd_flat": [],
+                        "model_info": {
+                            "available": FOOOF_AVAILABLE, "fitted": False,
+                            "details": "Błąd obliczeń FOOOF",
+                        },
+                    }
+            else:
+                if self._fooof_job_generation == self._fooof_generation:
+                    self._fooof_cache = result
+            finally:
+                self._fooof_future = None
+                # Throttle from completion, even when fitting took over a second.
+                self._fooof_last_time = now
+
+        if self._fooof_future is None and (
+            self._fooof_cache is None
+            or now - self._fooof_last_time >= max(0.05, cache_ttl_seconds)
+        ):
+            snapshot = copy.copy(self)
+            snapshot.channels = list(self.channels)
+            snapshot.raw_buffers = {ch: buf.copy() for ch, buf in self.raw_buffers.items()}
+            snapshot.filtered_buffers = {ch: buf.copy() for ch, buf in self.filtered_buffers.items()}
+            self._fooof_job_generation = self._fooof_generation
+            self._fooof_future = asyncio.get_running_loop().run_in_executor(
+                None, partial(snapshot.get_fooof, force=True, **settings)
+            )
+
+        return self._fooof_cache or {
+            "frequencies": [], "psd": [], "psd_flat": [],
+            "model_info": {
+                "available": FOOOF_AVAILABLE, "fitted": False,
+                "details": "Oczekiwanie na model FOOOF...",
+            },
+        }
 
     def get_fooof(
         self,
@@ -487,7 +548,7 @@ class HaloDSP:
             # Use a short local median baseline on raw data. The filtered
             # stream can contain startup transients and a blink itself is
             # intentionally suppressed by the EEG band-pass.
-            baseline = median_filter(window, size=51, mode="nearest")
+            baseline = median_filter(window, size=2 * int(self.sample_rate * 0.1) + 1, mode="nearest")
             centered = window - baseline
             mad = 1.4826 * np.median(np.abs(centered))
             if mad < 0.5:
@@ -564,8 +625,8 @@ class HaloDSP:
             # Flat spectrum = broadband noise, peaked spectrum = real EEG rhythms
             # Values: 0 = pure tone, 1 = white noise. Good EEG: 0.2-0.6
             try:
-                nperseg_q = min(128, len(win_filt))
-                freqs_q, psd_q = welch(win_filt, fs=SAMPLE_RATE, nperseg=nperseg_q)
+                nperseg_q = min(round(128 * self.sample_rate / SAMPLE_RATE), len(win_filt))
+                freqs_q, psd_q = welch(win_filt, fs=self.sample_rate, nperseg=nperseg_q)
                 # Focus on 1-45 Hz range
                 mask_q = (freqs_q >= 1.0) & (freqs_q <= 45.0)
                 psd_band = psd_q[mask_q]

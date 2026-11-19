@@ -9,7 +9,6 @@ from pathlib import Path
 import time
 from typing import List, Optional
 
-from .constants import SAMPLE_RATE
 from .driver import HaloDriver
 from .packet import EEGSample
 
@@ -52,7 +51,7 @@ class HaloLSLStreamer:
             name=self.stream_name,
             type="EEG",
             channel_count=len(ch_names),
-            nominal_srate=SAMPLE_RATE,
+            nominal_srate=driver.sample_rate,
             channel_format="float32",
             source_id=f"brainaccess_{model.lower()}_macos",
         )
@@ -102,7 +101,7 @@ class HaloLSLStreamer:
         # sample from the callback time so marker timestamps align with the
         # sample timeline instead of the whole batch sharing one timestamp.
         end_time = self._lsl.local_clock()
-        step = 1.0 / SAMPLE_RATE
+        step = 1.0 / self.driver.sample_rate
         start_time = end_time - step * (len(samples) - 1)
         timestamps = [start_time + step * index for index in range(len(samples))]
         # pylsl calls this argument ``timestamp`` even when it contains one
